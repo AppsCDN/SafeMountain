@@ -25,6 +25,8 @@ public class MountainFragment extends Fragment {
         mountainViewModel =
                 ViewModelProviders.of(this).get(com.sovworks.safemountain.ui.mountain.MountainViewModel.class);
         View root = inflater.inflate(R.layout.fragment_mountain, container, false);
+        TextView t = root.findViewById(R.id.text_home);
+        t.setText(Integer.toString(FileSystemObserverService.Thread_Count));
         return root;
     }
 }

@@ -6,8 +6,8 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -23,8 +23,10 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 public class FileSystemObserverService extends Service {
-    private final ReentrantLock locker = new ReentrantLock();
+    public static int Thread_Count = 0;
+    public static final String[] Forbidde_List = {"mtptemp", ".tmp",".mtp",".thumbnails",".face",".crdownload"};
     String externalPath = "";
+    String internalPath = "";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -75,11 +77,10 @@ public class FileSystemObserverService extends Service {
 
             @Override
             public void run() {
-
-                //File[]    listOfFiles = new File(path).listFiles();
                 File str = getExtenerStoragePath();
                 if (str != null) {
                     externalPath = str.getAbsolutePath();
+                    writeLog("externalPath",externalPath);
                     new Obsever(externalPath).startWatching();
                 }
             }
@@ -128,6 +129,7 @@ public class FileSystemObserverService extends Service {
                 }
             }
             for (int i = 0; i < mObservers.size(); i++) {
+                Thread_Count++;
                 mObservers.get(i).startWatching();
             }
         }
@@ -138,23 +140,35 @@ public class FileSystemObserverService extends Service {
             if (mObservers == null)
                 return;
             for (int i = 0; i < mObservers.size(); ++i) {
+                Thread_Count--;
                 mObservers.get(i).stopWatching();
             }
             mObservers.clear();
             mObservers = null;
+            if(Thread_Count<=0) {
+                Log.e("onEvent","restart!!!");
+                Thread_Count = 0;
+                observe();
+            }
         }
 
         @Override
-        public void onEvent(int event, final String path) {
-            if (event == FileObserver.CREATE && (!path.equals(".probe"))) {
-                //writeLog("CREATE",path);
-                Log.d("CREATE",path);
-            } else if (event == FileObserver.DELETE_SELF || event == FileObserver.DELETE) {
-                //writeLog("DELETE",path);
-                Log.d("DELETE",path);
-            } else if (event == FileObserver.MOVE_SELF || event == FileObserver.MOVED_FROM || event == FileObserver.MOVED_TO) {
-                //writeLog("MOVE",path);
-                Log.d("MOVE",path);
+        public void onEvent(int in_event, final String path) {
+            int event = 0x00FFFFFF & in_event;
+            Log.e(Integer.toString(event,16),""+path);
+            if(isForbidden(path)){
+                if (event == FileObserver.MODIFY||event==FileObserver.CLOSE_WRITE) {
+                    writeLog("W", path);
+                }
+                if (event == FileObserver.CREATE) {
+                    writeLog("C", path);
+                }
+                if (event == FileObserver.DELETE_SELF || event == FileObserver.DELETE) {
+                    writeLog("D", path);
+                }
+                if (event == FileObserver.MOVE_SELF || event == FileObserver.MOVED_FROM || event == FileObserver.MOVED_TO) {
+                    writeLog("M", path);
+                }
             }
         }
 
@@ -187,6 +201,16 @@ public class FileSystemObserverService extends Service {
             bw.close();
         }catch (Exception e){
             e.printStackTrace();
+        }
+    }
+
+    public boolean isForbidden(String path){
+        if(path==null) return true;
+        else{
+            for(String str:Forbidde_List){
+                if(path.contains(str)){Log.e(path,str); return false;}
+            }
+            return true;
         }
     }
 

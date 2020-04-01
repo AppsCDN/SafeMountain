@@ -46,15 +46,7 @@ public class HomeFragment extends Fragment {
                         changeActivateStatus(context);
                         home_activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
                         //TODO ask to reboot
-                        //Toast.makeText(context,"Please Reboot the System",Toast.LENGTH_LONG).show();
-                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            initLog(context);
-                            context.startForegroundService(myIntent);
-                        } else {
-                            initLog(context);
-                            context.startService(myIntent);
-                        }
+                        Toast.makeText(context,"Please Reboot the System",Toast.LENGTH_LONG).show();
                     }
                     else{
                         changeActivateStatus(context);

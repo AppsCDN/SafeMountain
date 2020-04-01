@@ -33,7 +33,7 @@ public class StartupReceiver extends BroadcastReceiver {
         String filename = context.getFilesDir().toString()+"/log.txt";
         String currentTime = "INIT_START_FROM "+Calendar.getInstance().getTime().toString()+"\n";
         try{
-            BufferedWriter bw = new BufferedWriter(new FileWriter(filename, true));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(filename, false));
             bw.write(currentTime);
             bw.close();
         }catch (Exception e){
