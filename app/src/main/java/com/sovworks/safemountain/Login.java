@@ -1,5 +1,7 @@
 package com.sovworks.safemountain;
 
+import android.content.Context;
+
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import java.util.Properties;
@@ -7,7 +9,7 @@ import java.util.Properties;
 public class Login {
     private String id;
     private String pw;
-    private final static String host = "125.176.128.98";
+    private final static String host = "192.168.219.104";
     private final static int port = 7422;
     public static boolean result;
 

@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sovworks.safemountain">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -14,17 +13,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service
-            android:name=".FileSystemObserverService"
+            android:name=".service.FileSystemObserverService"
             android:enabled="true"
             android:exported="false" >
         </service>
-        <receiver android:name=".StartupReceiver" android:enabled="true" android:exported="false">
+        <receiver android:name=".service.StartupReceiver" android:enabled="true" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>

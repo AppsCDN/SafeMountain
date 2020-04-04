@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,6 +17,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
+import com.sovworks.safemountain.db.Log_DB;
+
 import androidx.core.app.ActivityCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -33,6 +36,8 @@ import java.io.FileWriter;
 public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
     private static String ID="",PW="",EMAIL="";
+    public static SQLiteDatabase database;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
             MainActivity.this.finish();
             System.exit(0);
         }
+        database = openOrCreateDatabase("LOG_DB",MODE_PRIVATE,null);
+        database.execSQL(Log_DB.SQL_CREATE_LOG_TABLE);
     }
 
     @Override
@@ -87,11 +94,11 @@ public class MainActivity extends AppCompatActivity {
 
     private  boolean isWriteStoragePermissionGranted(Context context) {
         if (Build.VERSION.SDK_INT >= 23) {
-            if (context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            if (context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {
                 return true;
             } else {
-                ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 3);
+                ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
                 return false;
             }
         }

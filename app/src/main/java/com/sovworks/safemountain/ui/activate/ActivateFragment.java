@@ -12,14 +12,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
-import com.sovworks.safemountain.FileSystemObserverService;
 import com.sovworks.safemountain.R;
+import com.sovworks.safemountain.service.FileSystemObserverService;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.util.Calendar;
 
 public class ActivateFragment extends Fragment {
 
@@ -45,15 +44,18 @@ public class ActivateFragment extends Fragment {
                     if(!checkActivationStatus(context)){
                         changeActivateStatus(context);
                         activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
-                        //TODO ask to reboot
-                        Toast.makeText(context,"Please Reboot the System",Toast.LENGTH_LONG).show();
+                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(myIntent);
+                        } else {
+                            context.startService(myIntent);
+                        }
                     }
                     else{
                         changeActivateStatus(context);
                         activate_deactivate_Button.setBackgroundResource(R.drawable.activate);
                         Intent myIntent = new Intent(context, FileSystemObserverService.class);
                         context.stopService(myIntent);
-                        deleteLog(context);
                     }
                 }
             }
@@ -95,24 +97,6 @@ public class ActivateFragment extends Fragment {
             BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info,false));
             if(currentStatus){bw.write("false");}
             else{bw.write("true");}
-            bw.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    private void deleteLog(Context context){
-        String log_path = context.getFilesDir().toString()+"/log.txt";
-        File log_to_Delete = new File(log_path);
-        log_to_Delete.delete();
-    }
-
-    private void initLog(Context context){
-        String filename = context.getFilesDir().toString()+"/log.txt";
-        String currentTime = "INIT_START_FROM "+ Calendar.getInstance().getTime().toString()+"\n";
-        try{
-            BufferedWriter bw = new BufferedWriter(new FileWriter(filename, true));
-            bw.write(currentTime);
             bw.close();
         }catch (Exception e){
             e.printStackTrace();
