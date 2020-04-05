@@ -11,9 +11,12 @@ import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 import com.sovworks.safemountain.R;
 import com.sovworks.safemountain.service.FileSystemObserverService;
+import com.sovworks.safemountain.ui.mountain.MountainFragment;
+import com.sovworks.safemountain.ui.settings.SettingsFragment;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -31,6 +34,8 @@ public class HomeFragment extends Fragment {
                 ViewModelProviders.of(this).get(com.sovworks.safemountain.ui.home.HomeViewModel.class);
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         final Button home_activate_deactivate_Button  = root.findViewById(R.id.buttonActivate);
+        final Button mountain = root.findViewById(R.id.buttonMountain);
+        final Button settings = root.findViewById(R.id.buttonSettings);
         context = container.getContext();
         if(!checkActivationStatus(context)){home_activate_deactivate_Button.setBackgroundResource(R.drawable.activate);}
         else{home_activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);}
@@ -43,21 +48,47 @@ public class HomeFragment extends Fragment {
                 else{
                     if(!checkActivationStatus(context)){
                         changeActivateStatus(context);
-                        home_activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
-                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            context.startForegroundService(myIntent);
-                        } else {
-                            context.startService(myIntent);
+                        if(FileSystemObserverService.is_running){
+                            home_activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
+                            Toast.makeText(context,"Deactivate cancelled",Toast.LENGTH_LONG).show();
+                        }
+                        else{
+                            Intent myIntent = new Intent(context, FileSystemObserverService.class);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(myIntent);
+                            } else {
+                                context.startService(myIntent);
+                            }
+                            home_activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
+                            Toast.makeText(context,"Safe Mountain activated",Toast.LENGTH_LONG).show();
                         }
                     }
                     else{
                         changeActivateStatus(context);
                         home_activate_deactivate_Button.setBackgroundResource(R.drawable.activate);
-                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                        context.stopService(myIntent);
+                        Toast.makeText(context,"Reboot the system to deactivate",Toast.LENGTH_LONG).show();
                     }
                 }
+            }
+        });
+        mountain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FragmentTransaction fragmentTransaction = getActivity()
+                        .getSupportFragmentManager().beginTransaction();
+                fragmentTransaction.replace(R.id.drawer_layout, new MountainFragment());
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
+            }
+        });
+        settings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FragmentTransaction fragmentTransaction = getActivity()
+                        .getSupportFragmentManager().beginTransaction();
+                fragmentTransaction.replace(R.id.drawer_layout, new SettingsFragment());
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
             }
         });
         return root;

@@ -3,6 +3,7 @@ package com.sovworks.safemountain.service;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observer;
 import java.util.Stack;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -24,6 +25,7 @@ public class FileSystemObserverService extends Service {
     public static int Observer_Count;
     private static Thread Observers;
     private static final String[] Forbidden_List = {"mtptemp", ".tmp",".mtp",".thumbnails",".face",".crdownload","com.",".chromium"};
+    public static boolean is_running = false;
     private String sql;
     private Cursor cursor;
     String externalPath = "";
@@ -37,6 +39,7 @@ public class FileSystemObserverService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         observe();
+        is_running = true;
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -63,6 +66,7 @@ public class FileSystemObserverService extends Service {
         while(!Observers.isInterrupted()){
             Observers.interrupt();
         }
+        is_running = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             stopForeground(true);
         } else {
@@ -225,20 +229,22 @@ public class FileSystemObserverService extends Service {
     }
 
     private void InsertPath(String path){
-        sql = "select ID from Files_To_Transfer where PATH = " + "\"" + path + "\"";
-        cursor = MainActivity.database.rawQuery(sql,null);
-        if(cursor.getCount()==0){
-            cursor.close();
-            sql = "insert into Files_To_Transfer (PATH) values ("+"\""+path+"\""+")";
-            MainActivity.database.execSQL(sql);
-            Log.e("DB insert",path);
+        if(!new File(path).isDirectory()){
+            sql = "select ID from Files_To_Transfer where PATH = " + "\"" + path + "\"";
+            cursor = MainActivity.database.rawQuery(sql,null);
+            if(cursor.getCount()==0){
+                cursor.close();
+                sql = "insert into Files_To_Transfer (PATH) values ("+"\""+path+"\""+")";
+                MainActivity.database.execSQL(sql);
+                Log.e("DB insert",path);
+            }
         }
     }
 
     private void DeletePath(String path){
         sql = "delete from Files_To_Transfer where PATH = " + "\"" + path + "\"";
         MainActivity.database.execSQL(sql);
-        Log.e("DB delete",path);
+        Log.e("DB delete", path);
     }
 
     private boolean isForbidden(String path){

@@ -18,6 +18,8 @@ public class SettingsFragment extends Fragment {
 
     private com.sovworks.safemountain.ui.settings.SettingsViewModel settingsViewModel;
 
+    public SettingsFragment(){}
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         settingsViewModel =

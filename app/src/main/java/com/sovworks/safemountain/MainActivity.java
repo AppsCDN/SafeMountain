@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
-        boolean isStorageGranted = isWriteStoragePermissionGranted(this);
+        boolean isStorageGranted = isReadStoragePermissionGranted(this);
         if(!isStorageGranted){
             MainActivity.this.finish();
             System.exit(0);
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
 
-    private  boolean isWriteStoragePermissionGranted(Context context) {
+    private  boolean isReadStoragePermissionGranted(Context context) {
         if (Build.VERSION.SDK_INT >= 23) {
             if (context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {

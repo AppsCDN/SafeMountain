@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -31,6 +32,7 @@ public class ActivateFragment extends Fragment {
                 ViewModelProviders.of(this).get(com.sovworks.safemountain.ui.activate.ActivateViewModel.class);
         View root = inflater.inflate(R.layout.fragment_activate, container, false);
         final Button activate_deactivate_Button  = root.findViewById(R.id.buttonActivateNDeactivate);
+        final TextView ObserverCount = root.findViewById(R.id.ObserverCount);
         context = container.getContext();
         if(!checkActivationStatus(context)){activate_deactivate_Button.setBackgroundResource(R.drawable.activate);}
         else{activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);}
@@ -43,23 +45,35 @@ public class ActivateFragment extends Fragment {
                 else{
                     if(!checkActivationStatus(context)){
                         changeActivateStatus(context);
-                        activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
-                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            context.startForegroundService(myIntent);
-                        } else {
-                            context.startService(myIntent);
+                        if(FileSystemObserverService.is_running){
+                            activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
+                            Toast.makeText(context,"Deactivate cancelled",Toast.LENGTH_LONG).show();
+                        }
+                        else{
+                            Intent myIntent = new Intent(context, FileSystemObserverService.class);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(myIntent);
+                            } else {
+                                context.startService(myIntent);
+                            }
+                            activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);
+                            Toast.makeText(context,"Safe Mountain activated",Toast.LENGTH_LONG).show();
                         }
                     }
                     else{
                         changeActivateStatus(context);
                         activate_deactivate_Button.setBackgroundResource(R.drawable.activate);
-                        Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                        context.stopService(myIntent);
+                        Toast.makeText(context,"Reboot the system to deactivate",Toast.LENGTH_LONG).show();
                     }
                 }
             }
         });
+        if(checkActivationStatus(context)){
+            ObserverCount.setText(Integer.toString(FileSystemObserverService.Observer_Count)+" Files are being watched");
+        }
+        else{
+            ObserverCount.setText("Safe Mountain deactivated");
+        }
         return root;
     }
 
