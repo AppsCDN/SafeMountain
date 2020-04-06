@@ -18,7 +18,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.sovworks.safemountain.db.Log_DB;
-
 import androidx.core.app.ActivityCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -36,6 +35,8 @@ import java.io.FileWriter;
 public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
     private static String ID="",PW="",EMAIL="";
+    public static String HOST="";
+    public static int PORT=0;
     public static SQLiteDatabase database;
 
     @Override
@@ -70,8 +71,8 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
-        boolean isStorageGranted = isReadStoragePermissionGranted(this);
-        if(!isStorageGranted){
+        boolean isWriteStorageGranted = isWriteStoragePermissionGranted(this);
+        if(!isWriteStorageGranted){
             MainActivity.this.finish();
             System.exit(0);
         }
@@ -92,13 +93,13 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
 
-    private  boolean isReadStoragePermissionGranted(Context context) {
+    private  boolean isWriteStoragePermissionGranted(Context context) {
         if (Build.VERSION.SDK_INT >= 23) {
-            if (context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {
                 return true;
             } else {
-                ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
+                ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 3);
                 return false;
             }
         }
@@ -169,16 +170,20 @@ public class MainActivity extends AppCompatActivity {
         View headerView = navigationView.getHeaderView(0);
         final TextView emailView = (TextView) headerView.findViewById(R.id.accountEmail);
         final TextView idView = (TextView) headerView.findViewById(R.id.accountId);
+        final EditText host = (EditText) loginLayout.findViewById(R.id.hostEdit);
+        final EditText port = (EditText) loginLayout.findViewById(R.id.portEdit);
         final EditText id = (EditText) loginLayout.findViewById(R.id.idEdit);
         final EditText pw = (EditText) loginLayout.findViewById(R.id.pwEdit);
         final EditText email = (EditText) loginLayout.findViewById(R.id.emailEdit);
         new AlertDialog.Builder(this).setTitle("LOGIN").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        HOST = host.getText().toString();
+                        PORT = Integer.parseInt(port.getText().toString());
                         ID = id.getText().toString();
                         PW = pw.getText().toString();
                         EMAIL = email.getText().toString();
-                        if(!ID.isEmpty()&&!PW.isEmpty()&&!EMAIL.isEmpty()&&!checkLoginStatus(MainActivity.this)){
+                        if(!HOST.isEmpty()&&!(PORT==0)&&!ID.isEmpty()&&!PW.isEmpty()&&!EMAIL.isEmpty()&&!checkLoginStatus(MainActivity.this)){
                             try {
                                 new Login(ID,PW);
                             } catch (InterruptedException e) {

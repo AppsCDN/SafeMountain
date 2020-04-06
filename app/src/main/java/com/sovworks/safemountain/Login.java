@@ -9,8 +9,8 @@ import java.util.Properties;
 public class Login {
     private String id;
     private String pw;
-    private final static String host = "192.168.219.104";
-    private final static int port = 7422;
+    private final static String host = MainActivity.HOST;
+    private final static int port = MainActivity.PORT;
     public static boolean result;
 
     public Login(String in_id, String in_pw) throws InterruptedException {

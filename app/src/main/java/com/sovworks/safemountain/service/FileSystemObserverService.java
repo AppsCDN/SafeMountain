@@ -3,7 +3,6 @@ package com.sovworks.safemountain.service;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observer;
 import java.util.Stack;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -20,6 +19,7 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import com.sovworks.safemountain.MainActivity;
 import com.sovworks.safemountain.R;
+import com.sovworks.safemountain.transfer.Backup;
 
 public class FileSystemObserverService extends Service {
     public static int Observer_Count;
@@ -39,6 +39,7 @@ public class FileSystemObserverService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         observe();
+        backup();
         is_running = true;
         return super.onStartCommand(intent, flags, startId);
     }
@@ -120,6 +121,12 @@ public class FileSystemObserverService extends Service {
         Observers = new ObserverThread();
         Observers.setPriority(Thread.MIN_PRIORITY);
         Observers.start();
+    }
+
+    public void backup(){
+        Thread t = new Backup(getApplicationContext());
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
     }
 
     private void RE(){
@@ -244,7 +251,7 @@ public class FileSystemObserverService extends Service {
     private void DeletePath(String path){
         sql = "delete from Files_To_Transfer where PATH = " + "\"" + path + "\"";
         MainActivity.database.execSQL(sql);
-        Log.e("DB delete", path);
+        Log.e("DB delete",path);
     }
 
     private boolean isForbidden(String path){

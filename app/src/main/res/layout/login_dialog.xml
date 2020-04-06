@@ -10,6 +10,40 @@
         android:layout_height="wrap_content"
         android:padding="5dp">
         <TextView
+            android:text="HOST :"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/hostEdit"
+            android:singleLine="true"
+            android:layout_width="fill_parent"
+            android:hint="host"
+            android:inputType="phone"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp">
+        <TextView
+            android:text="PORT :"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/portEdit"
+            android:singleLine="true"
+            android:layout_width="fill_parent"
+            android:hint="port"
+            android:inputType="number"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp">
+        <TextView
             android:text="ID :"
             android:layout_width="100dp"
             android:layout_height="wrap_content" />
