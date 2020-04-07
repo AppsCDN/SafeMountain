@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/nav_home"
-        android:name="com.sovworks.safemountain.ui.home.HomeFragment"
+        android:name="com.kigael.safemountain.ui.home.HomeFragment"
         android:label="@string/menu_home"
         tools:layout="@layout/fragment_home">
         <action
@@ -17,7 +17,7 @@
 
     <fragment
         android:id="@+id/nav_mountain"
-        android:name="com.sovworks.safemountain.ui.mountain.MountainFragment"
+        android:name="com.kigael.safemountain.ui.mountain.MountainFragment"
         android:label="@string/menu_mountain"
         tools:layout="@layout/fragment_mountain">
         <action
@@ -30,13 +30,13 @@
 
     <fragment
         android:id="@+id/nav_activate"
-        android:name="com.sovworks.safemountain.ui.activate.ActivateFragment"
+        android:name="com.kigael.safemountain.ui.activate.ActivateFragment"
         android:label="@string/menu_activate"
         tools:layout="@layout/fragment_activate" />
 
     <fragment
         android:id="@+id/nav_settings"
-        android:name="com.sovworks.safemountain.ui.settings.SettingsFragment"
+        android:name="com.kigael.safemountain.ui.settings.SettingsFragment"
         android:label="@string/menu_settings"
         tools:layout="@layout/fragment_settings" />
 </navigation>

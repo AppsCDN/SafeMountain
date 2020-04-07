@@ -14,7 +14,7 @@
     <string name="menu_restore">RESTORE</string>
 
     <string name="settings_mobile_data">Allow Mobile Data Usage</string>
-    <string name="settings_encrypt_data">Encrypt Data</string>
+    <string name="settings_server_connection">Configure Server Connection</string>
     <string name="settings_restore_data">Restore Data</string>
 
     <string name="noti_channel_id">s5a8f8e2m6o9u7n4tain</string>

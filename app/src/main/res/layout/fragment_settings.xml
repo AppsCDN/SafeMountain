@@ -23,7 +23,7 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/settings_encrypt_data"
+        android:text="@string/settings_server_connection"
         android:textColor="#FF000000"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -44,19 +44,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView2" />
 
-    <Switch
-        android:id="@+id/switchMobileData"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/switchEncryptData"
+    <Button
+        android:id="@+id/ButtonMobileData"
+        android:layout_width="69dp"
+        android:layout_height="69dp"
+        android:background="@drawable/wifi"
+        app:layout_constraintBottom_toTopOf="@+id/ButtonConfigureServer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Switch
-        android:id="@+id/switchEncryptData"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <Button
+        android:id="@+id/ButtonConfigureServer"
+        android:layout_width="69dp"
+        android:layout_height="69dp"
+        android:background="@drawable/settings"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
@@ -71,7 +73,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline"
-        app:layout_constraintTop_toBottomOf="@+id/switchEncryptData" />
+        app:layout_constraintTop_toBottomOf="@+id/ButtonConfigureServer" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
