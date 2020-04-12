@@ -10,65 +10,58 @@
         android:layout_height="wrap_content"
         android:padding="5dp">
         <TextView
-            android:text="HOST :"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content" />
-        <EditText
-            android:id="@+id/hostEdit"
-            android:singleLine="true"
+            android:text="Restore"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_weight="1"
             android:layout_width="fill_parent"
-            android:hint="host"
-            android:inputType="text"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:text="Destination"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content" />
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/InternalRestoreBlock"
         android:orientation="horizontal"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:padding="5dp">
         <TextView
-            android:text="PORT :"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content" />
-        <EditText
-            android:id="@+id/portEdit"
-            android:singleLine="true"
+            android:id="@+id/InternalBackupTextView"
+            android:text="Internal Backup"
+            android:gravity="center"
+            android:layout_weight="1"
             android:layout_width="fill_parent"
-            android:hint="port"
-            android:inputType="number"
+            android:layout_height="wrap_content" />
+        <Spinner
+            android:id="@+id/InternalSpinner"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content" />
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/ExternalRestoreBlock"
         android:orientation="horizontal"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:padding="5dp">
         <TextView
-            android:text="ID :"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content" />
-        <EditText
-            android:id="@+id/idEdit"
-            android:singleLine="true"
+            android:id="@+id/ExternalBackupTextView"
+            android:text="External backup"
+            android:gravity="center"
+            android:layout_weight="1"
             android:layout_width="fill_parent"
-            android:hint="id"
             android:layout_height="wrap_content" />
-    </LinearLayout>
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:padding="5dp">
-        <TextView
-            android:text="PASSWORD :"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content" />
-        <EditText
-            android:id="@+id/pwEdit"
+        <Spinner
+            android:id="@+id/ExternalSpinner"
+            android:gravity="center"
+            android:layout_weight="1"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:singleLine="true"
-            android:hint="password"
-            android:inputType="textPassword" />
+            android:layout_height="wrap_content" />
     </LinearLayout>
 </LinearLayout>

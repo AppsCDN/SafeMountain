@@ -58,7 +58,7 @@
         android:id="@+id/ButtonConfigureServer"
         android:layout_width="69dp"
         android:layout_height="69dp"
-        android:background="@drawable/settings"
+        android:background="@drawable/connection"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"

@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.db.Log_DB;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -34,10 +35,11 @@ import java.io.FileWriter;
 
 public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
-    private static String ID="",PW="",EMAIL="",HOST="";
+    private static String ID="",PW="",HOST="";
     private static int PORT=0;
     public static SQLiteDatabase database;
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,14 +49,14 @@ public class MainActivity extends AppCompatActivity {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         View headerView = navigationView.getHeaderView(0);
-        final TextView emailView = (TextView) headerView.findViewById(R.id.accountEmail);
-        final TextView idView = (TextView) headerView.findViewById(R.id.accountId);
+        final TextView hostView = (TextView) headerView.findViewById(R.id.accountHOST);
+        final TextView idView = (TextView) headerView.findViewById(R.id.accountID);
         boolean loginStatus = checkLoginStatus(MainActivity.this);
         if(loginStatus){
             idView.setText(getID(MainActivity.this));
-            emailView.setText(getEmail(MainActivity.this));
+            hostView.setText(getHOST(MainActivity.this));
         }
-        emailView.setOnClickListener(new View.OnClickListener() {
+        hostView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(!checkLoginStatus(MainActivity.this)){
@@ -76,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
             System.exit(0);
         }
         database = openOrCreateDatabase("LOG_DB",MODE_PRIVATE,null);
-        database.execSQL(Log_DB.SQL_CREATE_ALL_TABLE);
         database.execSQL(Log_DB.SQL_CREATE_LOG_TABLE);
         database.execSQL(Log_DB.SQL_CREATE_DELETE_TABLE);
     }
@@ -115,11 +116,11 @@ public class MainActivity extends AppCompatActivity {
         return account_info.exists();
     }
 
-    private void createLoginFile(Context context, String in_id, String in_pw, String in_email,String in_Host, String in_Port){
+    private void createLoginFile(Context context, String in_id, String in_pw,String in_Host, String in_Port){
         String account_info_path = context.getFilesDir().toString()+"/account_info.txt";
         String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
         String mobile_info_path = context.getFilesDir().toString()+"/mobile_info.txt";
-        String toWrite = in_id+"\n"+in_pw+"\n"+in_email+"\n"+in_Host+"\n"+in_Port;
+        String toWrite = in_id+"\n"+in_pw+"\n"+in_Host+"\n"+in_Port;
         try{
             BufferedWriter bw = new BufferedWriter(new FileWriter(account_info_path, false));
             bw.write(toWrite);
@@ -156,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         return retID;
     }
 
-    private String getEmail(Context context){
+    private String getHOST(Context context){
         String account_info_path = context.getFilesDir().toString()+"/account_info.txt";
         String retID = "";
         try{
@@ -177,13 +178,12 @@ public class MainActivity extends AppCompatActivity {
                 (LinearLayout) vi.inflate(R.layout.login_dialog, null);
         NavigationView navigationView = findViewById(R.id.nav_view);
         View headerView = navigationView.getHeaderView(0);
-        final TextView emailView = (TextView) headerView.findViewById(R.id.accountEmail);
-        final TextView idView = (TextView) headerView.findViewById(R.id.accountId);
+        final TextView hostView = (TextView) headerView.findViewById(R.id.accountHOST);
+        final TextView idView = (TextView) headerView.findViewById(R.id.accountID);
         final EditText host = (EditText) loginLayout.findViewById(R.id.hostEdit);
         final EditText port = (EditText) loginLayout.findViewById(R.id.portEdit);
         final EditText id = (EditText) loginLayout.findViewById(R.id.idEdit);
         final EditText pw = (EditText) loginLayout.findViewById(R.id.pwEdit);
-        final EditText email = (EditText) loginLayout.findViewById(R.id.emailEdit);
         new AlertDialog.Builder(this).setTitle("LOGIN").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -191,8 +191,7 @@ public class MainActivity extends AppCompatActivity {
                         PORT = Integer.parseInt(port.getText().toString());
                         ID = id.getText().toString();
                         PW = pw.getText().toString();
-                        EMAIL = email.getText().toString();
-                        if(!HOST.isEmpty()&&!(PORT==0)&&!ID.isEmpty()&&!PW.isEmpty()&&!EMAIL.isEmpty()&&!checkLoginStatus(MainActivity.this)){
+                        if(!HOST.isEmpty()&&!(PORT==0)&&!ID.isEmpty()&&!PW.isEmpty()&&!checkLoginStatus(MainActivity.this)){
                             try {
                                 new Login(ID,PW,HOST,PORT);
                             } catch (InterruptedException e) {
@@ -201,11 +200,11 @@ public class MainActivity extends AppCompatActivity {
                             boolean isLoginSuccess = Login.result;
                             if(isLoginSuccess){
                                 idView.setText(ID);
-                                emailView.setText(EMAIL);
-                                createLoginFile(MainActivity.this,ID,PW,EMAIL,HOST,Integer.toString(PORT));
+                                hostView.setText(HOST);
+                                createLoginFile(MainActivity.this,ID,PW,HOST,Integer.toString(PORT));
                             }
                             else {
-                                HOST=""; PORT=0; ID=""; PW=""; EMAIL="";
+                                HOST=""; PORT=0; ID=""; PW="";
                                 Toast.makeText(MainActivity.this,"Login Failed",Toast.LENGTH_SHORT).show();
                             }
                         }

@@ -1,8 +1,11 @@
 package com.kigael.safemountain.service;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Stack;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -78,7 +81,11 @@ public class FileSystemObserverService extends Service {
         return Environment.getExternalStorageDirectory();
     }
 
-    public File getSDStoragePath() { return Environment.getExternalStorageDirectory().getParentFile().getParentFile(); }
+    public File getSDStoragePath() {
+        String SDcardPath = new SDCard().getExternalSDCardPath();
+        if(SDcardPath==null) return null;
+        else return new File(SDcardPath);
+    }
 
     public class ObserverThread extends Thread{
         private Obsever in,ex;
@@ -115,7 +122,6 @@ public class FileSystemObserverService extends Service {
         }
     }
 
-
     public void observe() {
         Observers = new ObserverThread();
         Observers.setPriority(Thread.MIN_PRIORITY);
@@ -141,21 +147,18 @@ public class FileSystemObserverService extends Service {
         String mPath;
         int mMask;
 
-        public Obsever(String path) {
-            // TODO Auto-generated constructor stub
+        private Obsever(String path) {
             this(path, ALL_EVENTS);
         }
 
-        public Obsever(String path, int mask) {
+        private Obsever(String path, int mask) {
             super(path, mask);
             mPath = path;
             mMask = mask;
-            // TODO Auto-generated constructor stub
         }
 
         @Override
         public void startWatching() {
-            // TODO Auto-generated method stub
             if (mObservers != null)
                 return;
             mObservers = new ArrayList<SingleFileObserver>();
@@ -181,7 +184,6 @@ public class FileSystemObserverService extends Service {
 
         @Override
         public void stopWatching() {
-            // TODO Auto-generated method stub
             if (mObservers == null)
                 return;
             for (int i = 0; i < mObservers.size(); ++i) {
@@ -207,7 +209,7 @@ public class FileSystemObserverService extends Service {
                     }
                     else if(event==FileObserver.DELETE||event==FileObserver.DELETE_SELF||event==FileObserver.MOVED_FROM){
                         if(!new File(path).isDirectory()){
-                            DeletePath(path);
+                            DeletePath(path, event);
                         }
                     }
                 }
@@ -217,15 +219,13 @@ public class FileSystemObserverService extends Service {
         private class SingleFileObserver extends FileObserver {
             private String mPath;
 
-            public SingleFileObserver(String path, int mask) {
+            private SingleFileObserver(String path, int mask) {
                 super(path, mask);
-                // TODO Auto-generated constructor stub
                 mPath = path;
             }
 
             @Override
             public void onEvent(int event, String path) {
-                // TODO Auto-generated method stub
                 String newPath = mPath + "/" + path;
                 Obsever.this.onEvent(event, newPath);
             }
@@ -235,24 +235,30 @@ public class FileSystemObserverService extends Service {
     }
 
     private void InsertPath(String path){
-        if(!new File(path).isDirectory()){
-            sql = "select ID from Files_To_Transfer where PATH = " + "\"" + path + "\"";
+        File f = new File(path);
+        if(!f.isDirectory()){
+            sql = "SELECT * FROM Files_To_Transfer WHERE PATH =" + "\"" + path + "\"";
             cursor = MainActivity.database.rawQuery(sql,null);
             if(cursor==null||cursor.getCount()==0){
                 if(cursor!=null){
                     cursor.close();
                 }
-                sql = "insert into Files_To_Transfer (PATH) values ("+"\""+path+"\""+")";
+                sql = "INSERT INTO Files_To_Transfer (PATH) VALUES ("+"\""+path+"\""+")";
                 MainActivity.database.execSQL(sql);
             }
         }
     }
 
-    private void DeletePath(String path){
-        sql = "delete from Files_To_Transfer where PATH = " + "\"" + path + "\"";
-        MainActivity.database.execSQL(sql);
-        sql = "insert into Files_To_Delete (PATH) values ("+"\""+path+"\""+")";
-        MainActivity.database.execSQL(sql);
+    private void DeletePath(String path, int event){
+        File f = new File(path);
+        if(!f.isDirectory()){
+            sql = "DELETE FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
+            MainActivity.database.execSQL(sql);
+            if(event==FileObserver.MOVED_FROM){
+                sql = "INSERT INTO Files_To_Delete (PATH) VALUES ("+"\""+path+"\""+")";
+                MainActivity.database.execSQL(sql);
+            }
+        }
     }
 
     private boolean isForbidden(String path){
@@ -262,6 +268,49 @@ public class FileSystemObserverService extends Service {
             if(path.contains(str)){return false;}
         }
         return true;
+    }
+
+    private static class SDCard {
+        private String getExternalSDCardPath() {
+            HashSet<String> hs = getExternalMounts();
+            for(String extSDCardPath : hs) {
+                return extSDCardPath;
+            }
+            return null;
+        }
+        private HashSet<String> getExternalMounts() {
+            final HashSet<String> out = new HashSet<String>();
+            String reg = "(?i).*media_rw.*(storage).*(sdcardfs).*rw.*";
+            String s = "";
+            try {
+                final Process process = new ProcessBuilder().command("mount").redirectErrorStream(true).start();
+                process.waitFor();
+                final InputStream is = process.getInputStream();
+                final byte[] buffer = new byte[1024];
+                while (is.read(buffer) != -1) {
+                    s = s + new String(buffer);
+                }
+                is.close();
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
+            final String[] lines = s.split("\n");
+            for (String line : lines) {
+                if (!line.toLowerCase(Locale.US).contains("asec")) {
+                    if (line.matches(reg)) {
+                        String[] parts = line.split(" ");
+                        for (String part : parts) {
+                            if (part.startsWith("/")) {
+                                if (!part.toLowerCase(Locale.US).contains("vold") && !part.toLowerCase(Locale.US).contains("/mnt/")) {
+                                    out.add(part);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return out;
+        }
     }
 
 }

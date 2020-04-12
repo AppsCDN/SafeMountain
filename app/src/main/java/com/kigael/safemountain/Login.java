@@ -33,15 +33,19 @@ public class Login {
                     Properties prop = new Properties();
                     prop.put("StrictHostKeyChecking", "no");
                     session.setConfig(prop);
+                    session.setTimeout(3000);
                     session.connect();
                     if(session.isConnected()){
                         result = true;
                         session.disconnect();
+                        return;
                     }else{
                         result = false;
+                        return;
                     }
                 }catch (Exception e){
                         result = false;
+                        return;
                 }
             }
         });
