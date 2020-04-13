@@ -59,7 +59,7 @@ public class Restore extends Thread implements Runnable {
     private String SDcard_left_storage;
     private String external_backup_size;
     private String popUpMessage="";
-    public static Stack<Character> asked = new Stack<Character>();
+    public static Stack<Character> asked;
     private static Stack<String> src = new Stack<String>();
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
     private ProgressDialog loading;
@@ -73,6 +73,7 @@ public class Restore extends Thread implements Runnable {
         this.PW = getPW(context);
         this.Port = getPORT(context);
         this.needToRestart = needToRestart;
+        asked = new Stack<>();
         try {
             connectToServer(Host,ID,PW,Port);
         } catch (InterruptedException e) {
@@ -191,7 +192,6 @@ public class Restore extends Thread implements Runnable {
         this.ID = getID(context);
         this.PW = getPW(context);
         this.Port = getPORT(context);
-        Log.e("Restart",""+needToRestart);
     }
 
     @Override

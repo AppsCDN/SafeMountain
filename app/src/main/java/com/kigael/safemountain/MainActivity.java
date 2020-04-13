@@ -12,6 +12,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
@@ -127,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
         grantUriPermission(getPackageName(), treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         Restore.rootUri.push(pickedDir);
+        Log.e("asked: ",""+Restore.asked.size());
         if(Restore.asked.empty()){
             Thread t = new Restore(MainActivity.this);
             t.setPriority(Thread.MIN_PRIORITY);
