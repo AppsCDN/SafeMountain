@@ -2,19 +2,21 @@ package com.kigael.safemountain.transfer;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.widget.ArrayAdapter;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
+import androidx.documentfile.provider.DocumentFile;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
@@ -22,16 +24,19 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
-import com.kigael.safemountain.R;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Stack;
 import java.util.Vector;
-import static android.view.View.GONE;
 
 public class Restore extends Thread implements Runnable {
     private Context context;
@@ -53,20 +58,21 @@ public class Restore extends Thread implements Runnable {
     private String internal_backup_size;
     private String SDcard_left_storage;
     private String external_backup_size;
-    private String internalDest;
-    private String externalDest;
+    private String popUpMessage="";
+    public static Stack<Character> asked = new Stack<Character>();
+    private static Stack<String> src = new Stack<String>();
+    public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
+    private ProgressDialog loading;
+    private static boolean needToRestart;
 
-    public Restore(final Context context) {
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public Restore(final Context context, boolean needToRestart) {
         this.context = context;
         this.Host = getHOST(context);
         this.ID = getID(context);
         this.PW = getPW(context);
         this.Port = getPORT(context);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    @Override
-    public void run() {
+        this.needToRestart = needToRestart;
         try {
             connectToServer(Host,ID,PW,Port);
         } catch (InterruptedException e) {
@@ -76,7 +82,6 @@ public class Restore extends Thread implements Runnable {
             Toast.makeText(context,"Server Connection Failed",Toast.LENGTH_LONG).show();
             return;
         }
-        super.run();
         try {
             checkIfInternalBackedUp();
         } catch (InterruptedException e) {
@@ -91,6 +96,7 @@ public class Restore extends Thread implements Runnable {
         internal_left_storage = String.format("%.2f",(double)(getInternalLeftStorage())/1024/1024/1024)+"GB";
         if(is_SDcard_Mounted) {SDcard_left_storage = String.format("%.2f",(double)(getSDcardLeftStorage())/1024/1024/1024)+"GB";}
         if(is_internal_backup){
+            asked.push('i');
             try {
                 getInternalBackupSize();
             } catch (InterruptedException e) {
@@ -98,6 +104,7 @@ public class Restore extends Thread implements Runnable {
             }
         }
         if(is_external_backup){
+            asked.push('e');
             try {
                 getExternalBackupSize();
             } catch (InterruptedException e) {
@@ -108,288 +115,218 @@ public class Restore extends Thread implements Runnable {
             DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            Toast.makeText(context,"Please Backup Before Restoration",Toast.LENGTH_LONG).show();
-                            break;
+                    if (which == DialogInterface.BUTTON_POSITIVE) {
+                        Toast.makeText(context, "Please Backup Before Restoration", Toast.LENGTH_LONG).show();
                     }
                 }
             };
             AlertDialog.Builder cantRestore = new AlertDialog.Builder(context);
             cantRestore.setMessage("No Backup Exists").setPositiveButton("OK", dialogClickListener).show();
         }
-        else if(!is_internal_backup&&is_external_backup&&!is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+        if(!is_internal_backup&&is_external_backup&&!is_SDcard_Mounted){
+            popUpMessage = "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+"NONE"+"\n"+
                     "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+external_backup_size).
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+external_backup_size;
         }
         else if(!is_internal_backup&&is_external_backup&&is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+            popUpMessage = "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+"NONE"+"\n"+
                     "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+external_backup_size).
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+external_backup_size;
         }
         else if(is_internal_backup&&!is_external_backup&&!is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+            popUpMessage = "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+internal_backup_size+"\n"+
                     "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+"NONE").
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+"NONE";
         }
         else if(is_internal_backup&&!is_external_backup&&is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+            popUpMessage= "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+internal_backup_size+"\n"+
                     "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+"NONE").
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+"NONE";
         }
         else if(is_internal_backup&&is_external_backup&&!is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+            popUpMessage = "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+internal_backup_size+"\n"+
                     "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+external_backup_size).
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+external_backup_size;
         }
         else if(is_internal_backup&&is_external_backup&&is_SDcard_Mounted){
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            showOption();
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("" +
-                    "Will You Proceed Restoration?\n" +
+            popUpMessage = "Will You Proceed Restoration?\n" +
                     "Internal Free Space: "+internal_left_storage+"\n"+
                     "Internal Backup Size: "+internal_backup_size+"\n"+
                     "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+external_backup_size).
-                    setPositiveButton("YES", dialogClickListener).
-                    setNegativeButton("NO",dialogClickListener).
-                    show();
+                    "External Backup Size: "+external_backup_size;
+        }
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which){
+                    case DialogInterface.BUTTON_POSITIVE:
+                        showOption();
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
+                        break;
+                }
+            }
+        };
+        AlertDialog.Builder restore = new AlertDialog.Builder(context);
+        restore.setMessage(popUpMessage).
+                setPositiveButton("YES", dialogClickListener).
+                setNegativeButton("NO",dialogClickListener).
+                show();
+    }
+
+    public Restore(Context context){
+        this.context = context;
+        this.Host = getHOST(context);
+        this.ID = getID(context);
+        this.PW = getPW(context);
+        this.Port = getPORT(context);
+        Log.e("Restart",""+needToRestart);
+    }
+
+    @Override
+    public void run() {
+        super.run();
+        init_sftp(Host,ID,PW,Port);
+        showLoadingScreen();
+        try {
+            while(!src.empty()&&!rootUri.empty()){
+                recursiveFolderDownload(src.pop(),rootUri.pop());
+            }
+        } catch (SftpException e) {
+            e.printStackTrace();
+        }
+        hideLoadingScreen();
+        disconnect_sftp();
+        if(needToRestart){
+            changeActivateStatus(context);
+            Intent myIntent = new Intent(context, com.kigael.safemountain.service.FileSystemObserverService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(myIntent);
+            } else {
+                context.startService(myIntent);
+            }
         }
     }
 
-    private void execute(){
-        if(is_internal_backup){
-            if(internalDest.equals("Internal Storage")){
-                try {
-                    download("Internal Backup","Internal Storage");
-                } catch (InterruptedException e) {
-                    Log.e("ERROR",""+e.getMessage());
-                }
-            }
-            else if(internalDest.equals("SD Card")){
-                try {
-                    download("Internal Backup","SD Card");
-                } catch (InterruptedException e) {
-                    Log.e("ERROR",""+e.getMessage());
-                }
-            }
-        }
-        if(is_external_backup){
-            if(externalDest.equals("Internal Storage")){
-                try {
-                    download("External Backup","Internal Storage");
-                } catch (InterruptedException e) {
-                    Log.e("ERROR",""+e.getMessage());
-                }
-            }
-            else if(externalDest.equals("SD Card")){
-                try {
-                    download("External Backup","SD Card");
-                } catch (InterruptedException e) {
-                    Log.e("ERROR",""+e.getMessage());
-                }
-            }
-        }
-    }
-
-    private void download(final String in_src, final String in_dst) throws InterruptedException {
-        Thread t = new Thread(new Runnable() {
-            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private void showLoadingScreen(){
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                String src="", dst="";
-                boolean is_SDcard = false;
-                if(in_src.equals("Internal Backup")){
-                    src = "./SafeMountainBackup/Internal";
-                }
-                else if(in_src.equals("External Backup")){
-                    src = "./SafeMountainBackup/External";
-                }
-                if(in_dst.equals("Internal Storage")){
-                    dst = Environment.getExternalStorageDirectory().getAbsolutePath();
-                    is_SDcard=false;
-                }
-                else if(in_dst.equals("SD Card")){
-                    Restore_SD.src=src;
-                    is_SDcard=true;
-                }
-                init_sftp(Host,ID,PW,Port);
-                try {
-                    if(is_SDcard){
-                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                        ((Activity) context).startActivityForResult(intent, 42);
-                    }
-                    else{
-                        recursiveFolderDownload(src,dst);
-                    }
-                } catch (SftpException e) {
-                    Log.e("ERROR",""+e.getMessage());
-                }
-                disconnect_sftp();
+                loading = ProgressDialog.show(context, "Restoration status", "Fetching ");
+                loading.show();
             }
-        });
-        t.setPriority(Thread.MIN_PRIORITY);
-        t.start();
+        }, 0);
     }
 
-    private void recursiveFolderDownload(String src, String dst) throws SftpException {
-        Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(src);
-        for (ChannelSftp.LsEntry item : fileAndFolderList) {
-            File f = new File(dst + "/" + item.getFilename());
-            if (!item.getAttrs().isDir()) {
-                channelSftp.get(src + "/" + item.getFilename(), dst + "/" + item.getFilename());
-            } else if (!(".".equals(item.getFilename()) || "..".equals(item.getFilename()))) {
-                f.mkdirs();
-                recursiveFolderDownload(src + "/" + item.getFilename(), dst + "/" + item.getFilename());
+    private void changeLoadingMessage(final String message){
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loading.setMessage(message);
             }
-        }
+        }, 0);
+    }
+
+    private void hideLoadingScreen(){
+        loading.dismiss();
+    }
+
+    private void download(final String in_src) {
+        src.push(in_src);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        ((Activity) context).startActivityForResult(intent, 42);
     }
 
     private void showOption(){
-        String[] options1 = {"Internal Storage", "SD Card", "Do Not Restore"};
-        String[] options2 = {"Internal Storage", "Do Not Restore"};
+        if(is_external_backup){
+            asked.pop();
+            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    switch (which){
+                        case DialogInterface.BUTTON_POSITIVE:
+                            download("./SafeMountainBackup/External");
+                            break;
+                        case DialogInterface.BUTTON_NEGATIVE:
+                            Toast.makeText(context,"External Backup Restoration Cancelled",Toast.LENGTH_LONG).show();
+                            break;
+                    }
+                }
+            };
+            AlertDialog.Builder restore = new AlertDialog.Builder(context);
+            restore.setMessage("On Which Path Would You Restore External Backup?").
+                    setPositiveButton("Select Path", dialogClickListener).
+                    setNegativeButton("Do Not Restore",dialogClickListener).
+                    show();
+        }
+        if(is_internal_backup){
+            asked.pop();
+            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    switch (which){
+                        case DialogInterface.BUTTON_POSITIVE:
+                            download("./SafeMountainBackup/Internal");
+                            break;
+                        case DialogInterface.BUTTON_NEGATIVE:
+                            Toast.makeText(context,"Internal Backup Restoration Cancelled",Toast.LENGTH_LONG).show();
+                            break;
+                    }
+                }
+            };
+            AlertDialog.Builder restore = new AlertDialog.Builder(context);
+            restore.setMessage("On Which Path Would You Restore Internal Backup?").
+                    setPositiveButton("Select Path", dialogClickListener).
+                    setNegativeButton("Do Not Restore",dialogClickListener).
+                    show();
+        }
+    }
 
-        LayoutInflater vi = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        LinearLayout restoreLayout =
-                (LinearLayout) vi.inflate(R.layout.restore_dialog, null);
-        final LinearLayout internalRestore = restoreLayout.findViewById(R.id.InternalRestoreBlock);
-        final LinearLayout externalRestore = restoreLayout.findViewById(R.id.ExternalRestoreBlock);
-        if(!is_internal_backup){internalRestore.setVisibility(GONE);}
-        if(!is_external_backup){externalRestore.setVisibility(GONE);}
-        final Spinner internalSpinner = restoreLayout.findViewById(R.id.InternalSpinner);
-        final Spinner externalSpinner = restoreLayout.findViewById(R.id.ExternalSpinner);
-        ArrayAdapter<String> adapter;
-        if(is_SDcard_Mounted){adapter = new ArrayAdapter<String>(context,android.R.layout.simple_spinner_item, options1);}
-        else {adapter = new ArrayAdapter<String>(context,android.R.layout.simple_spinner_item, options2);}
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        internalSpinner.setAdapter(adapter);
-        externalSpinner.setAdapter(adapter);
-        new AlertDialog.Builder(context).setTitle("Restore Location Setting").setView(restoreLayout).setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
+    private void recursiveFolderDownload(String src, DocumentFile pickedDir) throws SftpException {
+        Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(src);
+        for (ChannelSftp.LsEntry item : fileAndFolderList) {
+            if (!item.getAttrs().isDir()) {
+                changeLoadingMessage("Fetching "+item.getFilename());
+                DocumentFile newFile = pickedDir.findFile(item.getFilename());
+                if(newFile!=null){
+                    newFile.delete();
+                }
+                newFile = pickedDir.createFile("",item.getFilename());
+                write(src + "/" + item.getFilename(),newFile.getUri());
+            } else if (!(".".equals(item.getFilename()) || "..".equals(item.getFilename()))) {
+                DocumentFile newDir = pickedDir.findFile(item.getFilename());
+                if(newDir==null){
+                    newDir = pickedDir.createDirectory(item.getFilename());
+                }
+                recursiveFolderDownload(src + "/" + item.getFilename(), newDir);
             }
-        }).setPositiveButton("RESTORE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                internalDest = internalSpinner.getSelectedItem().toString();
-                externalDest = externalSpinner.getSelectedItem().toString();
-                execute();
+        }
+    }
+
+    private void write(String src, Uri uri){
+        try {
+            ParcelFileDescriptor descriptor=context.getContentResolver().openFileDescriptor(uri,"w");
+            if(descriptor!=null) {
+                FileOutputStream fos=new FileOutputStream(descriptor.getFileDescriptor());
+                channelSftp.get(src,fos);
+                fos.close();
             }
-        }).show();
+        } catch (IOException | SftpException e) {
+            e.printStackTrace();
+        }
     }
 
     private void connectToServer(final String host, final String userName, final String password, final int port) throws InterruptedException {
@@ -659,6 +596,23 @@ public class Restore extends Thread implements Runnable {
             e.printStackTrace();
         }
         return retPW;
+    }
+
+    private void changeActivateStatus(Context context){
+        String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
+        File activate_info = new File(activate_info_path);
+        boolean currentStatus;
+        try{
+            BufferedReader br = new BufferedReader(new FileReader(activate_info));
+            currentStatus = Boolean.parseBoolean(br.readLine());
+            br.close();
+            BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info,false));
+            if(currentStatus){bw.write("false");}
+            else{bw.write("true");}
+            bw.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 }

@@ -69,7 +69,7 @@ public class ActivateFragment extends Fragment {
             }
         });
         if(checkActivationStatus(context)){
-            ObserverCount.setText(Integer.toString(FileSystemObserverService.Observer_Count)+" Files are being watched");
+            ObserverCount.setText(FileSystemObserverService.Observer_Count+" Files are being watched");
         }
         else{
             ObserverCount.setText("Safe Mountain deactivated");

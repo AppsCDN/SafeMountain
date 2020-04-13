@@ -3,6 +3,7 @@ package com.kigael.safemountain;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,7 +21,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.db.Log_DB;
-import com.kigael.safemountain.transfer.Restore_SD;
+import com.kigael.safemountain.service.FileSystemObserverService;
+import com.kigael.safemountain.transfer.Restore;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.documentfile.provider.DocumentFile;
@@ -124,9 +126,12 @@ public class MainActivity extends AppCompatActivity {
         DocumentFile pickedDir = DocumentFile.fromTreeUri(this, treeUri);
         grantUriPermission(getPackageName(), treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        Thread t = new Restore_SD(MainActivity.this, pickedDir);
-        t.setPriority(Thread.MIN_PRIORITY);
-        t.start();
+        Restore.rootUri.push(pickedDir);
+        if(Restore.asked.empty()){
+            Thread t = new Restore(MainActivity.this);
+            t.setPriority(Thread.MIN_PRIORITY);
+            t.start();
+        }
     }
 
     private boolean checkLoginStatus(Context context){

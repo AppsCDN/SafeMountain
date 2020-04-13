@@ -3,6 +3,7 @@ package com.kigael.safemountain.ui.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,8 +23,8 @@ import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.Login;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
+import com.kigael.safemountain.service.FileSystemObserverService;
 import com.kigael.safemountain.transfer.Restore;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -53,9 +54,15 @@ public class SettingsFragment extends Fragment {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which){
                     case DialogInterface.BUTTON_POSITIVE:
-                        Thread t = new Restore(context);
-                        t.setPriority(Thread.MIN_PRIORITY);
-                        t.run();
+                        if(FileSystemObserverService.is_running){
+                            Intent myIntent = new Intent(context, FileSystemObserverService.class);
+                            context.stopService(myIntent);
+                            changeActivateStatus(context);
+                            new Restore(context,true);
+                        }
+                        else{
+                            new Restore(context,false);
+                        }
                         break;
 
                     case DialogInterface.BUTTON_NEGATIVE:
@@ -100,7 +107,7 @@ public class SettingsFragment extends Fragment {
                 }
                 else{
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setMessage("Proceed Restoration?").setPositiveButton("YES", dialogClickListener)
+                    builder.setMessage("Proceed Restoration?"+"\n"+"SafeMountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
                             .setNegativeButton("NO", dialogClickListener).show();
                 }
                 if(cursor!=null){
@@ -196,6 +203,23 @@ public class SettingsFragment extends Fragment {
                 }
             }
         }).show();
+    }
+
+    private void changeActivateStatus(Context context){
+        String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
+        File activate_info = new File(activate_info_path);
+        boolean currentStatus;
+        try{
+            BufferedReader br = new BufferedReader(new FileReader(activate_info));
+            currentStatus = Boolean.parseBoolean(br.readLine());
+            br.close();
+            BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info,false));
+            if(currentStatus){bw.write("false");}
+            else{bw.write("true");}
+            bw.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 }
