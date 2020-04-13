@@ -5,8 +5,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -18,8 +20,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.db.Log_DB;
+import com.kigael.safemountain.transfer.Restore_SD;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -39,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private static int PORT=0;
     public static SQLiteDatabase database;
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +111,22 @@ public class MainActivity extends AppCompatActivity {
         else {
             return true;
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Override
+    public void onActivityResult(int requestCode,int resultCode,Intent resultData) {
+        super.onActivityResult(requestCode, resultCode, resultData);
+        if (resultCode != RESULT_OK) {
+            return;
+        }
+        Uri treeUri = resultData.getData();
+        DocumentFile pickedDir = DocumentFile.fromTreeUri(this, treeUri);
+        grantUriPermission(getPackageName(), treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        Thread t = new Restore_SD(MainActivity.this, pickedDir);
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
     }
 
     private boolean checkLoginStatus(Context context){

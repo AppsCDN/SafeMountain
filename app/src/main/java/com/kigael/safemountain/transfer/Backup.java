@@ -68,11 +68,7 @@ public class Backup extends Thread implements Runnable {
                         delete_done(file_path);
                     }
                     cursor.close();
-                    try {
-                        cancelTransfer(backup_path);
-                    } catch (SftpException e) {
-                        e.printStackTrace();
-                    }
+                    cancelTransfer(backup_path);
                     Log.e("DeleteFile",backup_path);
                     delete_done(file_path);
                 }
@@ -104,11 +100,7 @@ public class Backup extends Thread implements Runnable {
                     }
                     if(!ifFileExist(file_path)){
                         Log.e("TransferFail-cancel",file_path);
-                        try {
-                            cancelTransfer(backup_path);
-                        } catch (SftpException e) {
-                            e.printStackTrace();
-                        }
+                        cancelTransfer(backup_path);
                         send_done(file_path);
                     }
                     else if(ifFileExist(file_path) && getLastModifiedDate(file_path) == LastModified){
@@ -136,7 +128,7 @@ public class Backup extends Thread implements Runnable {
         disconnect();
     }
 
-    private void cancelTransfer(String backup_path) throws SftpException {
+    private void cancelTransfer(String backup_path) {
         init(Host,ID,PW,Port);
         deleteFile("."+backup_path);
         disconnect();

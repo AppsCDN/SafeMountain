@@ -1,17 +1,13 @@
 package com.kigael.safemountain.transfer;
 
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.UriPermission;
-import android.database.Cursor;
-import android.net.Uri;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.ArrayAdapter;
@@ -19,8 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
-import androidx.documentfile.provider.DocumentFile;
-
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
@@ -32,18 +26,9 @@ import com.kigael.safemountain.R;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.URI;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 import static android.view.View.GONE;
@@ -70,7 +55,6 @@ public class Restore extends Thread implements Runnable {
     private String external_backup_size;
     private String internalDest;
     private String externalDest;
-    public static boolean go = false;
 
     public Restore(final Context context) {
         this.context = context;
@@ -286,31 +270,20 @@ public class Restore extends Thread implements Runnable {
         }
     }
 
-    public static String getPrintStackTrace(Exception e) {
-
-        StringWriter errors = new StringWriter();
-        e.printStackTrace(new PrintWriter(errors));
-
-        return errors.toString();
-
-    }
-
     private void execute(){
         if(is_internal_backup){
             if(internalDest.equals("Internal Storage")){
                 try {
                     download("Internal Backup","Internal Storage");
                 } catch (InterruptedException e) {
-                    String str = getPrintStackTrace(e);
-                    Log.e("ERROR",str);
+                    Log.e("ERROR",""+e.getMessage());
                 }
             }
             else if(internalDest.equals("SD Card")){
                 try {
                     download("Internal Backup","SD Card");
                 } catch (InterruptedException e) {
-                    String str = getPrintStackTrace(e);
-                    Log.e("ERROR",str);
+                    Log.e("ERROR",""+e.getMessage());
                 }
             }
         }
@@ -319,16 +292,14 @@ public class Restore extends Thread implements Runnable {
                 try {
                     download("External Backup","Internal Storage");
                 } catch (InterruptedException e) {
-                    String str = getPrintStackTrace(e);
-                    Log.e("ERROR",str);
+                    Log.e("ERROR",""+e.getMessage());
                 }
             }
             else if(externalDest.equals("SD Card")){
                 try {
                     download("External Backup","SD Card");
                 } catch (InterruptedException e) {
-                    String str = getPrintStackTrace(e);
-                    Log.e("ERROR",str);
+                    Log.e("ERROR",""+e.getMessage());
                 }
             }
         }
@@ -336,10 +307,11 @@ public class Restore extends Thread implements Runnable {
 
     private void download(final String in_src, final String in_dst) throws InterruptedException {
         Thread t = new Thread(new Runnable() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void run() {
                 String src="", dst="";
+                boolean is_SDcard = false;
                 if(in_src.equals("Internal Backup")){
                     src = "./SafeMountainBackup/Internal";
                 }
@@ -348,69 +320,41 @@ public class Restore extends Thread implements Runnable {
                 }
                 if(in_dst.equals("Internal Storage")){
                     dst = Environment.getExternalStorageDirectory().getAbsolutePath();
+                    is_SDcard=false;
                 }
                 else if(in_dst.equals("SD Card")){
-                    dst = new SDCard().getExternalSDCardPath();
+                    Restore_SD.src=src;
+                    is_SDcard=true;
                 }
                 init_sftp(Host,ID,PW,Port);
                 try {
-                    recursiveFolderDownload(src,dst);
+                    if(is_SDcard){
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                        ((Activity) context).startActivityForResult(intent, 42);
+                    }
+                    else{
+                        recursiveFolderDownload(src,dst);
+                    }
                 } catch (SftpException e) {
-                    String str = getPrintStackTrace(e);
-                    Log.e("ERROR",str);
+                    Log.e("ERROR",""+e.getMessage());
                 }
                 disconnect_sftp();
             }
         });
+        t.setPriority(Thread.MIN_PRIORITY);
         t.start();
-        t.join();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void recursiveFolderDownload(String src, String dst) throws SftpException {
-        channelSftp.lcd(dst);
-        channelSftp.cd(src);
-        Log.e("Lpwd",channelSftp.lpwd());
-        Log.e("Rpwd",channelSftp.pwd());
-        String Lpwd = channelSftp.lpwd();
-        String Rpwd = channelSftp.pwd();
-        Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(".");
+        Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(src);
         for (ChannelSftp.LsEntry item : fileAndFolderList) {
-            File f = new File(Lpwd+"/"+item.getFilename());
+            File f = new File(dst + "/" + item.getFilename());
             if (!item.getAttrs().isDir()) {
-                try{
-                    Log.e("File",channelSftp.lpwd()+"/"+item.getFilename());
-                    if(Lpwd.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath())){
-                        channelSftp.get(Rpwd+"/"+item.getFilename(),Lpwd+"/"+item.getFilename());
-                    }
-                    else{
-                        DocumentFile uri = DocumentFile.fromFile(new File(Lpwd));
-                        writeFile(uri,Rpwd,item.getFilename());
-                    }
-                }catch(SftpException se){
-                    se.printStackTrace();
-                }
+                channelSftp.get(src + "/" + item.getFilename(), dst + "/" + item.getFilename());
             } else if (!(".".equals(item.getFilename()) || "..".equals(item.getFilename()))) {
                 f.mkdirs();
-                //TODO: will mkdir need SAF too?
-                recursiveFolderDownload("./" + item.getFilename(), "./" + item.getFilename());
+                recursiveFolderDownload(src + "/" + item.getFilename(), dst + "/" + item.getFilename());
             }
-        }
-        channelSftp.lcd("..");
-        channelSftp.cd("..");
-    }
-
-    private void writeFile(DocumentFile pickedDir, String src, String fileName) {
-        try {
-            DocumentFile file = pickedDir.createFile("image/jpeg", fileName);
-            OutputStream out = context.getContentResolver().openOutputStream(file.getUri());
-            try {
-                channelSftp.get(src,out);
-            } finally {
-                out.close();
-            }
-        } catch (IOException | SftpException e) {
-            throw new RuntimeException("Something went wrong : " + e.getMessage(), e);
         }
     }
 
