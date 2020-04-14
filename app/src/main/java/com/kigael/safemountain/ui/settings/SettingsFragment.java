@@ -18,7 +18,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProviders;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.Login;
 import com.kigael.safemountain.MainActivity;
@@ -35,14 +34,9 @@ public class SettingsFragment extends Fragment {
     private Context context;
     private static String ID="",PW="",HOST="";
     private static int PORT=0;
-    private com.kigael.safemountain.ui.settings.SettingsViewModel settingsViewModel;
-
-    public SettingsFragment(){}
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        settingsViewModel =
-                ViewModelProviders.of(this).get(com.kigael.safemountain.ui.settings.SettingsViewModel.class);
         final View root = inflater.inflate(R.layout.fragment_settings, container, false);
         context = container.getContext();
         final Button serverConfigure = root.findViewById(R.id.ButtonConfigureServer);
@@ -88,11 +82,11 @@ public class SettingsFragment extends Fragment {
             public void onClick(View v) {
                 changeMobileStatus(context);
                 if(checkMobileUsageStatus(context)){
-                    Toast.makeText(context,"Mobile Data Usage is Allowed",Toast.LENGTH_LONG).show();
+                    Toast.makeText(context,"Mobile data usage is allowed",Toast.LENGTH_LONG).show();
                     allowMobileData.setBackgroundResource(R.drawable.cell);
                 }
                 else{
-                    Toast.makeText(context,"Mobile Data Usage is Prevented",Toast.LENGTH_LONG).show();
+                    Toast.makeText(context,"Mobile data usage is prevented",Toast.LENGTH_LONG).show();
                     allowMobileData.setBackgroundResource(R.drawable.wifi);
                 }
             }
@@ -107,7 +101,7 @@ public class SettingsFragment extends Fragment {
                 }
                 else{
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setMessage("Proceed Restoration?"+"\n"+"SafeMountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
+                    builder.setMessage("Proceed restoration?"+"\n"+"Safe Mountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
                             .setNegativeButton("NO", dialogClickListener).show();
                 }
                 if(cursor!=null){
@@ -176,7 +170,7 @@ public class SettingsFragment extends Fragment {
         final EditText port = (EditText) loginLayout.findViewById(R.id.portEdit);
         final EditText id = (EditText) loginLayout.findViewById(R.id.idEdit);
         final EditText pw = (EditText) loginLayout.findViewById(R.id.pwEdit);
-        new AlertDialog.Builder(context).setTitle("LOGIN").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
+        new AlertDialog.Builder(context).setTitle("Login").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 HOST = host.getText().toString();
@@ -194,11 +188,11 @@ public class SettingsFragment extends Fragment {
                         idView.setText(ID);
                         hostView.setText(HOST);
                         createLoginFile(context,ID,PW,HOST,Integer.toString(PORT));
-                        Toast.makeText(context,"Server Configuration Success",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context,"Server connection success",Toast.LENGTH_SHORT).show();
                     }
                     else {
                         HOST=""; PORT=0; ID=""; PW="";
-                        Toast.makeText(context,"Server Configuration Failed",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context,"Server connection failed",Toast.LENGTH_SHORT).show();
                     }
                 }
             }

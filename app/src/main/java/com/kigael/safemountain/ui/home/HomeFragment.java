@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +16,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.ViewModelProviders;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
 import com.kigael.safemountain.service.FileSystemObserverService;
@@ -32,13 +30,10 @@ import java.io.FileWriter;
 
 public class HomeFragment extends Fragment {
 
-    private com.kigael.safemountain.ui.home.HomeViewModel homeViewModel;
     private Context context;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        homeViewModel =
-                ViewModelProviders.of(this).get(com.kigael.safemountain.ui.home.HomeViewModel.class);
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         final Button home_activate_deactivate_Button  = root.findViewById(R.id.buttonActivate);
         final Button mountain = root.findViewById(R.id.buttonMountain);
@@ -53,7 +48,6 @@ public class HomeFragment extends Fragment {
                         if(FileSystemObserverService.is_running){
                             Intent myIntent = new Intent(context, FileSystemObserverService.class);
                             context.stopService(myIntent);
-                            Log.e("is_running",""+FileSystemObserverService.is_running);
                             home_activate_deactivate_Button.setBackgroundResource(R.drawable.activate);
                             changeActivateStatus(context);
                             new Restore(context,true);
@@ -75,7 +69,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if(!checkLoginStatus(context)){
-                    Toast.makeText(context,"Login is Required",Toast.LENGTH_LONG).show();
+                    Toast.makeText(context,"Login is required",Toast.LENGTH_LONG).show();
                 }
                 else{
                     if(!checkActivationStatus(context)){
@@ -133,7 +127,7 @@ public class HomeFragment extends Fragment {
                 }
                 else{
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setMessage("Proceed Restoration?"+"\n"+"SafeMountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
+                    builder.setMessage("Proceed restoration?"+"\n"+"Safe Mountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
                             .setNegativeButton("NO", dialogClickListener).show();
                 }
                 if(cursor!=null){

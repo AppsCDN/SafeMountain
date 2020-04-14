@@ -13,7 +13,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
-import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
@@ -66,7 +65,7 @@ public class Restore extends Thread implements Runnable {
     private static boolean needToRestart;
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public Restore(final Context context, boolean needToRestart) {
+    public Restore(final Context context, final boolean needToRestart) {
         this.context = context;
         this.Host = getHOST(context);
         this.ID = getID(context);
@@ -80,7 +79,7 @@ public class Restore extends Thread implements Runnable {
             e.printStackTrace();
         }
         if(!serverConnection){
-            Toast.makeText(context,"Server Connection Failed",Toast.LENGTH_LONG).show();
+            Toast.makeText(context,"Server connection failed",Toast.LENGTH_LONG).show();
             return;
         }
         try {
@@ -117,54 +116,54 @@ public class Restore extends Thread implements Runnable {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
-                        Toast.makeText(context, "Please Backup Before Restoration", Toast.LENGTH_LONG).show();
+                        Toast.makeText(context, "Please backup before restoration", Toast.LENGTH_LONG).show();
                     }
                 }
             };
             AlertDialog.Builder cantRestore = new AlertDialog.Builder(context);
-            cantRestore.setMessage("No Backup Exists").setPositiveButton("OK", dialogClickListener).show();
+            cantRestore.setMessage("No backup exists").setPositiveButton("OK", dialogClickListener).show();
         }
         if(!is_internal_backup&&is_external_backup&&!is_SDcard_Mounted){
-            popUpMessage = "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+"NONE"+"\n"+
-                    "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+external_backup_size;
+            popUpMessage = "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+"none"+"\n"+
+                    "SDcard free space: "+"none"+"\n"+
+                    "External backup size: "+external_backup_size;
         }
         else if(!is_internal_backup&&is_external_backup&&is_SDcard_Mounted){
-            popUpMessage = "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+"NONE"+"\n"+
-                    "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+external_backup_size;
+            popUpMessage = "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+"none"+"\n"+
+                    "SDcard free space: "+SDcard_left_storage+"\n"+
+                    "External backup size: "+external_backup_size;
         }
         else if(is_internal_backup&&!is_external_backup&&!is_SDcard_Mounted){
-            popUpMessage = "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+internal_backup_size+"\n"+
-                    "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+"NONE";
+            popUpMessage = "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+internal_backup_size+"\n"+
+                    "SDcard free space: "+"none"+"\n"+
+                    "External backup size: "+"none";
         }
         else if(is_internal_backup&&!is_external_backup&&is_SDcard_Mounted){
-            popUpMessage= "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+internal_backup_size+"\n"+
-                    "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+"NONE";
+            popUpMessage= "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+internal_backup_size+"\n"+
+                    "SDcard free space: "+SDcard_left_storage+"\n"+
+                    "External backup size: "+"none";
         }
         else if(is_internal_backup&&is_external_backup&&!is_SDcard_Mounted){
-            popUpMessage = "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+internal_backup_size+"\n"+
-                    "SDcard Free Space: "+"NONE"+"\n"+
-                    "External Backup Size: "+external_backup_size;
+            popUpMessage = "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+internal_backup_size+"\n"+
+                    "SDcard free space: "+"none"+"\n"+
+                    "External backup size: "+external_backup_size;
         }
         else if(is_internal_backup&&is_external_backup&&is_SDcard_Mounted){
-            popUpMessage = "Will You Proceed Restoration?\n" +
-                    "Internal Free Space: "+internal_left_storage+"\n"+
-                    "Internal Backup Size: "+internal_backup_size+"\n"+
-                    "SDcard Free Space: "+SDcard_left_storage+"\n"+
-                    "External Backup Size: "+external_backup_size;
+            popUpMessage = "Will you proceed restoration?\n" +
+                    "Internal free space: "+internal_left_storage+"\n"+
+                    "Internal backup size: "+internal_backup_size+"\n"+
+                    "SDcard free space: "+SDcard_left_storage+"\n"+
+                    "External backup size: "+external_backup_size;
         }
         DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
             @Override
@@ -174,7 +173,10 @@ public class Restore extends Thread implements Runnable {
                         showOption();
                         break;
                     case DialogInterface.BUTTON_NEGATIVE:
-                        Toast.makeText(context,"Restoration Cancelled",Toast.LENGTH_LONG).show();
+                        if(needToRestart){
+                            restartService();
+                        }
+                        Toast.makeText(context,"Restoration cancelled",Toast.LENGTH_LONG).show();
                         break;
                 }
             }
@@ -208,6 +210,10 @@ public class Restore extends Thread implements Runnable {
         }
         hideLoadingScreen();
         disconnect_sftp();
+        restartService();
+    }
+
+    private void restartService(){
         if(needToRestart){
             changeActivateStatus(context);
             Intent myIntent = new Intent(context, com.kigael.safemountain.service.FileSystemObserverService.class);
@@ -252,45 +258,59 @@ public class Restore extends Thread implements Runnable {
 
     private void showOption(){
         if(is_external_backup){
-            asked.pop();
             DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            download("./SafeMountainBackup/External");
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"External Backup Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
+                    if(which==DialogInterface.BUTTON_POSITIVE){
+                        asked.pop();
+                        download("./SafeMountainBackup/External");
+                    }
+                    else if(which==DialogInterface.BUTTON_NEGATIVE){
+                        asked.pop();
+                        Toast.makeText(context,"External backup restoration cancelled",Toast.LENGTH_LONG).show();
+                        if(src.empty()&&asked.empty()){
+                            restartService();
+                        }
+                        else{
+                            Thread t = new Restore(context);
+                            t.setPriority(Thread.MIN_PRIORITY);
+                            t.start();
+                        }
                     }
                 }
             };
             AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("On Which Path Would You Restore External Backup?").
-                    setPositiveButton("Select Path", dialogClickListener).
-                    setNegativeButton("Do Not Restore",dialogClickListener).
+            restore.setMessage("On which path would you restore external backup?").
+                    setPositiveButton("Select path", dialogClickListener).
+                    setNegativeButton("Do not restore",dialogClickListener).
                     show();
         }
         if(is_internal_backup){
-            asked.pop();
             DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    switch (which){
-                        case DialogInterface.BUTTON_POSITIVE:
-                            download("./SafeMountainBackup/Internal");
-                            break;
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            Toast.makeText(context,"Internal Backup Restoration Cancelled",Toast.LENGTH_LONG).show();
-                            break;
+                    if(which==DialogInterface.BUTTON_POSITIVE){
+                        asked.pop();
+                        download("./SafeMountainBackup/Internal");
+                    }
+                    else if(which==DialogInterface.BUTTON_NEGATIVE){
+                        asked.pop();
+                        Toast.makeText(context,"Internal backup restoration cancelled",Toast.LENGTH_LONG).show();
+                        if(src.empty()&&asked.empty()){
+                            restartService();
+                        }
+                        else{
+                            Thread t = new Restore(context);
+                            t.setPriority(Thread.MIN_PRIORITY);
+                            t.start();
+                        }
                     }
                 }
             };
             AlertDialog.Builder restore = new AlertDialog.Builder(context);
-            restore.setMessage("On Which Path Would You Restore Internal Backup?").
-                    setPositiveButton("Select Path", dialogClickListener).
-                    setNegativeButton("Do Not Restore",dialogClickListener).
+            restore.setMessage("On which path would you restore internal backup?").
+                    setPositiveButton("Select path", dialogClickListener).
+                    setNegativeButton("Do not restore",dialogClickListener).
                     show();
         }
     }

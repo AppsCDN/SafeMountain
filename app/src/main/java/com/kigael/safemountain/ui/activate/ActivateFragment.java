@@ -2,6 +2,7 @@ package com.kigael.safemountain.ui.activate;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -12,7 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProviders;
+import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
 import com.kigael.safemountain.service.FileSystemObserverService;
 import java.io.BufferedReader;
@@ -23,16 +24,14 @@ import java.io.FileWriter;
 
 public class ActivateFragment extends Fragment {
 
-    private com.kigael.safemountain.ui.activate.ActivateViewModel activateViewModel;
     private Context context;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        activateViewModel =
-                ViewModelProviders.of(this).get(ActivateViewModel.class);
         View root = inflater.inflate(R.layout.fragment_activate, container, false);
         final Button activate_deactivate_Button  = root.findViewById(R.id.buttonActivateNDeactivate);
         final TextView ObserverCount = root.findViewById(R.id.ObserverCount);
+        final TextView BackupCount = root.findViewById(R.id.BackupCount);
         context = container.getContext();
         if(!checkActivationStatus(context)){activate_deactivate_Button.setBackgroundResource(R.drawable.activate);}
         else{activate_deactivate_Button.setBackgroundResource(R.drawable.deactivate);}
@@ -40,7 +39,7 @@ public class ActivateFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if(!checkLoginStatus(context)){
-                    Toast.makeText(context,"Login is Required",Toast.LENGTH_LONG).show();
+                    Toast.makeText(context,"Login is required",Toast.LENGTH_LONG).show();
                 }
                 else{
                     if(!checkActivationStatus(context)){
@@ -70,9 +69,27 @@ public class ActivateFragment extends Fragment {
         });
         if(checkActivationStatus(context)){
             ObserverCount.setText(FileSystemObserverService.Observer_Count+" Files are being watched");
+            String sql = "SELECT * FROM Files_To_Transfer";
+            Cursor cursor = MainActivity.database.rawQuery(sql,null);
+            if(cursor==null||cursor.getCount()==0){
+                BackupCount.setText("All files are backedup");
+                if(cursor!=null){
+                    cursor.close();
+                }
+            }
+            else{
+                if(cursor.getCount()>1){
+                    BackupCount.setText(cursor.getCount()+" Files are being backedup");
+                }
+                else{
+                    BackupCount.setText("1 File is being backedup");
+                }
+                cursor.close();
+            }
         }
         else{
             ObserverCount.setText("Safe Mountain deactivated");
+            BackupCount.setText("");
         }
         return root;
     }

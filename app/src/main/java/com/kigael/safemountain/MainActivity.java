@@ -3,7 +3,6 @@ package com.kigael.safemountain;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,7 +21,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.db.Log_DB;
-import com.kigael.safemountain.service.FileSystemObserverService;
 import com.kigael.safemountain.transfer.Restore;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -128,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
         grantUriPermission(getPackageName(), treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         Restore.rootUri.push(pickedDir);
-        Log.e("asked: ",""+Restore.asked.size());
         if(Restore.asked.empty()){
             Thread t = new Restore(MainActivity.this);
             t.setPriority(Thread.MIN_PRIORITY);
@@ -210,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         final EditText port = (EditText) loginLayout.findViewById(R.id.portEdit);
         final EditText id = (EditText) loginLayout.findViewById(R.id.idEdit);
         final EditText pw = (EditText) loginLayout.findViewById(R.id.pwEdit);
-        new AlertDialog.Builder(this).setTitle("LOGIN").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
+        new AlertDialog.Builder(this).setTitle("Login").setView(loginLayout).setNeutralButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         HOST = host.getText().toString();
@@ -231,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             else {
                                 HOST=""; PORT=0; ID=""; PW="";
-                                Toast.makeText(MainActivity.this,"Login Failed",Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this,"Login failed",Toast.LENGTH_SHORT).show();
                             }
                         }
                     }
