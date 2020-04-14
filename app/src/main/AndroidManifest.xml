@@ -17,9 +17,14 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service
-            android:name="com.kigael.safemountain.service.FileSystemObserverService"
+            android:name=".service.FileSystemObserverService"
             android:enabled="true"
             android:exported="false" >
+        </service>
+        <service
+            android:name=".service.RestoreService"
+            android:enabled="true"
+            android:exported="false">
         </service>
         <receiver android:name="com.kigael.safemountain.service.StartupReceiver" android:enabled="true" android:exported="false">
             <intent-filter>

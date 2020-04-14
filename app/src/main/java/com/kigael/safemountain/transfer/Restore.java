@@ -2,17 +2,15 @@ package com.kigael.safemountain.transfer;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
+import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
@@ -23,6 +21,8 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+import com.kigael.safemountain.MainActivity;
+import com.kigael.safemountain.service.RestoreService;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -61,8 +61,8 @@ public class Restore extends Thread implements Runnable {
     public static Stack<Character> asked;
     private static Stack<String> src = new Stack<String>();
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
-    private ProgressDialog loading;
     private static boolean needToRestart;
+    public static String fetchingFile = "";
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public Restore(final Context context, final boolean needToRestart) {
@@ -200,7 +200,7 @@ public class Restore extends Thread implements Runnable {
     public void run() {
         super.run();
         init_sftp(Host,ID,PW,Port);
-        showLoadingScreen();
+        MainActivity.showLoadingScreen();
         try {
             while(!src.empty()&&!rootUri.empty()){
                 recursiveFolderDownload(src.pop(),rootUri.pop());
@@ -208,9 +208,10 @@ public class Restore extends Thread implements Runnable {
         } catch (SftpException e) {
             e.printStackTrace();
         }
-        hideLoadingScreen();
+        MainActivity.hideLoadingScreen();
         disconnect_sftp();
         restartService();
+        stopRestoreService();
     }
 
     private void restartService(){
@@ -225,29 +226,9 @@ public class Restore extends Thread implements Runnable {
         }
     }
 
-    private void showLoadingScreen(){
-        Handler mHandler = new Handler(Looper.getMainLooper());
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                loading = ProgressDialog.show(context, "Restoration status", "Fetching ");
-                loading.show();
-            }
-        }, 0);
-    }
-
-    private void changeLoadingMessage(final String message){
-        Handler mHandler = new Handler(Looper.getMainLooper());
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                loading.setMessage(message);
-            }
-        }, 0);
-    }
-
-    private void hideLoadingScreen(){
-        loading.dismiss();
+    private void stopRestoreService(){
+        Intent myIntent = new Intent(context, RestoreService.class);
+        context.stopService(myIntent);
     }
 
     private void download(final String in_src) {
@@ -271,10 +252,13 @@ public class Restore extends Thread implements Runnable {
                         if(src.empty()&&asked.empty()){
                             restartService();
                         }
-                        else{
-                            Thread t = new Restore(context);
-                            t.setPriority(Thread.MIN_PRIORITY);
-                            t.start();
+                        else if(!src.empty()&&asked.empty()){
+                            Intent myIntent = new Intent(context, RestoreService.class);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(myIntent);
+                            } else {
+                                context.startService(myIntent);
+                            }
                         }
                     }
                 }
@@ -299,10 +283,13 @@ public class Restore extends Thread implements Runnable {
                         if(src.empty()&&asked.empty()){
                             restartService();
                         }
-                        else{
-                            Thread t = new Restore(context);
-                            t.setPriority(Thread.MIN_PRIORITY);
-                            t.start();
+                        else if(!src.empty()&&asked.empty()){
+                            Intent myIntent = new Intent(context, RestoreService.class);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(myIntent);
+                            } else {
+                                context.startService(myIntent);
+                            }
                         }
                     }
                 }
@@ -319,7 +306,8 @@ public class Restore extends Thread implements Runnable {
         Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(src);
         for (ChannelSftp.LsEntry item : fileAndFolderList) {
             if (!item.getAttrs().isDir()) {
-                changeLoadingMessage("Fetching "+item.getFilename());
+                MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
+                fetchingFile = item.getFilename();
                 DocumentFile newFile = pickedDir.findFile(item.getFilename());
                 if(newFile!=null){
                     newFile.delete();

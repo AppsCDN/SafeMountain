@@ -17,5 +17,6 @@
     <string name="settings_server_connection">Configure Server Connection</string>
     <string name="settings_restore_data">Restore Data</string>
 
-    <string name="noti_channel_id">s5a8f8e2m6o9u7n4tain</string>
+    <string name="noti_channel_id_observer">s5a8f8e2m6o9u7n4tain</string>
+    <string name="noti_channel_id_restore">s9a5f0e2m0o4untain</string>
 </resources>

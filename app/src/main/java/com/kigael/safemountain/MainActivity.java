@@ -3,6 +3,7 @@ package com.kigael.safemountain;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,6 +12,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.db.Log_DB;
+import com.kigael.safemountain.service.RestoreService;
 import com.kigael.safemountain.transfer.Restore;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -39,13 +43,16 @@ import java.io.FileReader;
 import java.io.FileWriter;
 
 public class MainActivity extends AppCompatActivity {
+    private static MainActivity instance = null;
     private AppBarConfiguration mAppBarConfiguration;
     private static String ID="",PW="",HOST="";
     private static int PORT=0;
     public static SQLiteDatabase database;
+    private static ProgressDialog loading;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        this.instance = this;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -84,6 +91,12 @@ public class MainActivity extends AppCompatActivity {
         database = openOrCreateDatabase("LOG_DB",MODE_PRIVATE,null);
         database.execSQL(Log_DB.SQL_CREATE_LOG_TABLE);
         database.execSQL(Log_DB.SQL_CREATE_DELETE_TABLE);
+        if(RestoreService.is_running){
+            showLoadingScreen();
+        }
+        else{
+            hideLoadingScreen();
+        }
     }
 
     @Override
@@ -127,9 +140,13 @@ public class MainActivity extends AppCompatActivity {
         getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         Restore.rootUri.push(pickedDir);
         if(Restore.asked.empty()){
-            Thread t = new Restore(MainActivity.this);
-            t.setPriority(Thread.MIN_PRIORITY);
-            t.start();
+            Log.e("Foreground Service", "is called");
+            Intent myIntent = new Intent(MainActivity.this, RestoreService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                MainActivity.this.startForegroundService(myIntent);
+            } else {
+                MainActivity.this.startService(myIntent);
+            }
         }
     }
 
@@ -233,6 +250,37 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }).show();
+    }
+
+    public static void showLoadingScreen(){
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loading = ProgressDialog.show(getInstance(), "Restoration status", "Fetching "+Restore.fetchingFile);
+                loading.show();
+            }
+        }, 0);
+    }
+
+    public static void changeLoadingMessage(final String message){
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loading.setMessage(message);
+            }
+        }, 0);
+    }
+
+    public static void hideLoadingScreen(){
+        if(loading!=null){
+            loading.dismiss();
+        }
+    }
+
+    public static MainActivity getInstance() {
+        return instance;
     }
 
 }

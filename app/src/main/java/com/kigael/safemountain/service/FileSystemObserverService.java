@@ -50,7 +50,7 @@ public class FileSystemObserverService extends Service {
     public void onCreate() {
         super.onCreate();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            final String strId = getString(R.string.noti_channel_id);
+            final String strId = getString(R.string.noti_channel_id_observer);
             final String strTitle = getString(R.string.app_name);
             NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             NotificationChannel channel = notificationManager.getNotificationChannel(strId);
