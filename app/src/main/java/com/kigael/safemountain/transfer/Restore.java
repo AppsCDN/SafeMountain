@@ -10,7 +10,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
-import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
@@ -63,6 +62,7 @@ public class Restore extends Thread implements Runnable {
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
     private static boolean needToRestart;
     public static String fetchingFile = "";
+    public static String dialogContext = "";
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public Restore(final Context context, final boolean needToRestart) {
@@ -196,6 +196,7 @@ public class Restore extends Thread implements Runnable {
         this.Port = getPORT(context);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void run() {
         super.run();
@@ -309,6 +310,7 @@ public class Restore extends Thread implements Runnable {
                 MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
                 fetchingFile = item.getFilename();
                 DocumentFile newFile = pickedDir.findFile(item.getFilename());
+                //TODO: compare modified date
                 if(newFile!=null){
                     newFile.delete();
                 }

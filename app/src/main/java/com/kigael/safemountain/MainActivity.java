@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     public static SQLiteDatabase database;
     private static ProgressDialog loading;
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         this.instance = this;
@@ -258,6 +259,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 loading = ProgressDialog.show(getInstance(), "Restoration status", "Fetching "+Restore.fetchingFile);
+                Restore.dialogContext = loading.getContext().toString();
+                Log.e("showContext",loading.getContext().toString());
                 loading.show();
             }
         }, 0);
@@ -273,9 +276,14 @@ public class MainActivity extends AppCompatActivity {
         }, 0);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static void hideLoadingScreen(){
-        if(loading!=null){
-            loading.dismiss();
+        if(loading!=null&&loading.getContext().toString().equals(Restore.dialogContext)){
+            Log.e("hideContext",loading.getContext().toString());
+            if(!getInstance().isDestroyed()){
+                loading.dismiss();
+            }
+            loading=null;
         }
     }
 
