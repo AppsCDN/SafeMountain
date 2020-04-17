@@ -3,8 +3,8 @@ package com.kigael.safemountain.ui.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -20,9 +20,7 @@ import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.Login;
-import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
-import com.kigael.safemountain.service.FileSystemObserverService;
 import com.kigael.safemountain.transfer.Restore;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -48,14 +46,11 @@ public class SettingsFragment extends Fragment {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which){
                     case DialogInterface.BUTTON_POSITIVE:
-                        if(FileSystemObserverService.is_running){
-                            Intent myIntent = new Intent(context, FileSystemObserverService.class);
-                            context.stopService(myIntent);
-                            changeActivateStatus(context);
-                            new Restore(context,true);
+                        if(isMobileDataAllowed()||isWiFiConnected()){
+                            new Restore(context);
                         }
                         else{
-                            new Restore(context,false);
+                            Toast.makeText(context,"Mobile data usage is prevented",Toast.LENGTH_LONG).show();
                         }
                         break;
 
@@ -94,18 +89,13 @@ public class SettingsFragment extends Fragment {
         restore.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String sql = "SELECT * FROM Files_To_Transfer";
-                Cursor cursor = MainActivity.database.rawQuery(sql,null);
-                if(cursor!=null&&cursor.getCount()!=0){
-                    Toast.makeText(context,"Backup is still in progress", Toast.LENGTH_LONG).show();
-                }
-                else{
+                if(isNetworkConnected()){
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setMessage("Proceed restoration?"+"\n"+"Safe Mountain will be deactivated during restoration").setPositiveButton("YES", dialogClickListener)
+                    builder.setMessage("Proceed restoration?").setPositiveButton("YES", dialogClickListener)
                             .setNegativeButton("NO", dialogClickListener).show();
                 }
-                if(cursor!=null){
-                    cursor.close();
+                else{
+                    Toast.makeText(context,"No network connection",Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -199,21 +189,39 @@ public class SettingsFragment extends Fragment {
         }).show();
     }
 
-    private void changeActivateStatus(Context context){
-        String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
-        File activate_info = new File(activate_info_path);
-        boolean currentStatus;
-        try{
-            BufferedReader br = new BufferedReader(new FileReader(activate_info));
-            currentStatus = Boolean.parseBoolean(br.readLine());
-            br.close();
-            BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info,false));
-            if(currentStatus){bw.write("false");}
-            else{bw.write("true");}
-            bw.close();
-        }catch (Exception e){
-            e.printStackTrace();
+    private boolean isNetworkConnected() {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (null != activeNetwork) {
+            return true;
         }
+        return false;
+    }
+
+    private boolean isWiFiConnected() {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (null != activeNetwork) {
+            return activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
+        }
+        return false;
+    }
+
+    private boolean isMobileDataAllowed(){
+        String activate_info_path = context.getFilesDir().toString()+"/mobile_info.txt";
+        File activate_info = new File(activate_info_path);
+        if(!activate_info.exists()) return false;
+        else if(activate_info.exists()){
+            try{
+                BufferedReader br = new BufferedReader(new FileReader(activate_info_path));
+                boolean check = Boolean.parseBoolean(br.readLine());
+                br.close();
+                return check;
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return false;
     }
 
 }

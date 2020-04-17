@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Vector;
 
 public class Backup extends Thread implements Runnable {
     private String sql;
@@ -48,7 +49,7 @@ public class Backup extends Thread implements Runnable {
     public void run() {
         super.run();
         while(FileSystemObserverService.is_running){
-            if(isNetworkConnected()&&((isMobileDataAllowed() && isWiFiConnected())||(!isMobileDataAllowed() && isWiFiConnected())||(isMobileDataAllowed() && !isWiFiConnected()))){
+            if(isNetworkConnected()&&(isMobileDataAllowed() || isWiFiConnected())){
                 this.ID = getID(context);
                 this.PW = getPW(context);
                 this.Host = getHOST(context);
@@ -68,8 +69,15 @@ public class Backup extends Thread implements Runnable {
                         delete_done(file_path);
                     }
                     cursor.close();
-                    cancelTransfer(backup_path);
-                    Log.e("DeleteFile",backup_path);
+                    if(!new File(file_path).exists()){
+                        cancelTransfer(backup_path);
+                        try {
+                            deleteEmptyDir("."+new File(backup_path).getParent());
+                        } catch (SftpException e) {
+                            e.printStackTrace();
+                        }
+                        Log.e("DeleteFile",backup_path);
+                    }
                     delete_done(file_path);
                 }
                 else if(cursor!=null){
@@ -96,7 +104,6 @@ public class Backup extends Thread implements Runnable {
                         sendFile(backup_path,file_path);
                     } catch (Exception e) {
                         sent_success = false;
-                        e.printStackTrace();
                     }
                     if(!ifFileExist(file_path)){
                         Log.e("TransferFail-cancel",file_path);
@@ -131,6 +138,15 @@ public class Backup extends Thread implements Runnable {
     private void cancelTransfer(String backup_path) {
         init(Host,ID,PW,Port);
         deleteFile("."+backup_path);
+        disconnect();
+    }
+
+    private void deleteEmptyDir(String backup_dir_path) throws SftpException {
+        init(Host,ID,PW,Port);
+        Vector<ChannelSftp.LsEntry> ls = channelSftp.ls(backup_dir_path);
+        if(ls.size()==2){
+            channelSftp.rmdir(backup_dir_path);
+        }
         disconnect();
     }
 

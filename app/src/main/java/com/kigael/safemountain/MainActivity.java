@@ -14,7 +14,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
@@ -141,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
         getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         Restore.rootUri.push(pickedDir);
         if(Restore.asked.empty()){
-            Log.e("Foreground Service", "is called");
             Intent myIntent = new Intent(MainActivity.this, RestoreService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 MainActivity.this.startForegroundService(myIntent);
@@ -258,9 +256,8 @@ public class MainActivity extends AppCompatActivity {
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                loading = ProgressDialog.show(getInstance(), "Restoration status", "Fetching "+Restore.fetchingFile);
+                loading = ProgressDialog.show(getInstance(), "Restoration status", Restore.restoreStatus);
                 Restore.dialogContext = loading.getContext().toString();
-                Log.e("showContext",loading.getContext().toString());
                 loading.show();
             }
         }, 0);
@@ -271,7 +268,9 @@ public class MainActivity extends AppCompatActivity {
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                loading.setMessage(message);
+                if(loading!=null){
+                    loading.setMessage(message);
+                }
             }
         }, 0);
     }
@@ -279,7 +278,6 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static void hideLoadingScreen(){
         if(loading!=null&&loading.getContext().toString().equals(Restore.dialogContext)){
-            Log.e("hideContext",loading.getContext().toString());
             if(!getInstance().isDestroyed()){
                 loading.dismiss();
             }

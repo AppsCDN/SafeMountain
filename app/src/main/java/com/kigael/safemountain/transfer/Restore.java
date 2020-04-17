@@ -5,11 +5,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
+import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
@@ -23,12 +25,9 @@ import com.jcraft.jsch.SftpException;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.service.RestoreService;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -37,7 +36,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 public class Restore extends Thread implements Runnable {
-    private Context context;
+    private static Context context;
     private boolean serverConnection;
     private Session session;
     private Channel channel;
@@ -45,10 +44,10 @@ public class Restore extends Thread implements Runnable {
     private ChannelExec channelExec;
     private JSch jsch;
     private ByteArrayOutputStream baos;
-    private String Host;
-    private String ID;
-    private String PW;
-    private int Port;
+    private static String Host;
+    private static String ID;
+    private static String PW;
+    private static int Port;
     private boolean is_internal_backup;
     private boolean is_external_backup;
     private boolean is_SDcard_Mounted;
@@ -60,18 +59,18 @@ public class Restore extends Thread implements Runnable {
     public static Stack<Character> asked;
     private static Stack<String> src = new Stack<String>();
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
-    private static boolean needToRestart;
-    public static String fetchingFile = "";
+    public static String restoreStatus = "";
     public static String dialogContext = "";
 
+    public Restore(){}
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public Restore(final Context context, final boolean needToRestart) {
+    public Restore(final Context context) {
         this.context = context;
         this.Host = getHOST(context);
         this.ID = getID(context);
         this.PW = getPW(context);
         this.Port = getPORT(context);
-        this.needToRestart = needToRestart;
         asked = new Stack<>();
         try {
             connectToServer(Host,ID,PW,Port);
@@ -173,9 +172,6 @@ public class Restore extends Thread implements Runnable {
                         showOption();
                         break;
                     case DialogInterface.BUTTON_NEGATIVE:
-                        if(needToRestart){
-                            restartService();
-                        }
                         Toast.makeText(context,"Restoration cancelled",Toast.LENGTH_LONG).show();
                         break;
                 }
@@ -186,14 +182,6 @@ public class Restore extends Thread implements Runnable {
                 setPositiveButton("YES", dialogClickListener).
                 setNegativeButton("NO",dialogClickListener).
                 show();
-    }
-
-    public Restore(Context context){
-        this.context = context;
-        this.Host = getHOST(context);
-        this.ID = getID(context);
-        this.PW = getPW(context);
-        this.Port = getPORT(context);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -211,20 +199,7 @@ public class Restore extends Thread implements Runnable {
         }
         MainActivity.hideLoadingScreen();
         disconnect_sftp();
-        restartService();
         stopRestoreService();
-    }
-
-    private void restartService(){
-        if(needToRestart){
-            changeActivateStatus(context);
-            Intent myIntent = new Intent(context, com.kigael.safemountain.service.FileSystemObserverService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(myIntent);
-            } else {
-                context.startService(myIntent);
-            }
-        }
     }
 
     private void stopRestoreService(){
@@ -250,10 +225,7 @@ public class Restore extends Thread implements Runnable {
                     else if(which==DialogInterface.BUTTON_NEGATIVE){
                         asked.pop();
                         Toast.makeText(context,"External backup restoration cancelled",Toast.LENGTH_LONG).show();
-                        if(src.empty()&&asked.empty()){
-                            restartService();
-                        }
-                        else if(!src.empty()&&asked.empty()){
+                        if(!src.empty()&&asked.empty()){
                             Intent myIntent = new Intent(context, RestoreService.class);
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 context.startForegroundService(myIntent);
@@ -281,10 +253,7 @@ public class Restore extends Thread implements Runnable {
                     else if(which==DialogInterface.BUTTON_NEGATIVE){
                         asked.pop();
                         Toast.makeText(context,"Internal backup restoration cancelled",Toast.LENGTH_LONG).show();
-                        if(src.empty()&&asked.empty()){
-                            restartService();
-                        }
-                        else if(!src.empty()&&asked.empty()){
+                        if(!src.empty()&&asked.empty()){
                             Intent myIntent = new Intent(context, RestoreService.class);
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 context.startForegroundService(myIntent);
@@ -307,15 +276,18 @@ public class Restore extends Thread implements Runnable {
         Vector<ChannelSftp.LsEntry> fileAndFolderList = channelSftp.ls(src);
         for (ChannelSftp.LsEntry item : fileAndFolderList) {
             if (!item.getAttrs().isDir()) {
-                MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
-                fetchingFile = item.getFilename();
                 DocumentFile newFile = pickedDir.findFile(item.getFilename());
-                //TODO: compare modified date
-                if(newFile!=null){
-                    newFile.delete();
+                if(newFile==null){
+                    MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
+                    restoreStatus = "Fetching "+item.getFilename();
+                    newFile = pickedDir.createFile("",item.getFilename());
+                    write(src + "/" + item.getFilename(),newFile.getUri());
+                    DeletePath(getPathFromUri(newFile.getUri()));
                 }
-                newFile = pickedDir.createFile("",item.getFilename());
-                write(src + "/" + item.getFilename(),newFile.getUri());
+                else{
+                    MainActivity.changeLoadingMessage("Skipping "+item.getFilename());
+                    restoreStatus = "Skipping "+item.getFilename();
+                }
             } else if (!(".".equals(item.getFilename()) || "..".equals(item.getFilename()))) {
                 DocumentFile newDir = pickedDir.findFile(item.getFilename());
                 if(newDir==null){
@@ -336,6 +308,39 @@ public class Restore extends Thread implements Runnable {
             }
         } catch (IOException | SftpException e) {
             e.printStackTrace();
+        }
+    }
+
+    private String getPathFromUri(Uri uri){
+        String path = uri.getPath();
+        String[] split = path.split(":");
+        if(split[0].contains("/tree/primary")){
+            path = Environment.getExternalStorageDirectory().toString()+"/";
+            path += split[2];
+            return path;
+        }
+        else{
+            path = new SDCard().getExternalSDCardPath()+"/";
+            path += split[2];
+            return path;
+        }
+    }
+
+    private void DeletePath(String path){
+        String sql = "SELECT * FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
+        Cursor cursor = MainActivity.database.rawQuery(sql,null);
+        if(cursor!=null&&cursor.getCount()!=0){
+            cursor.close();
+            sql = "DELETE FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
+            MainActivity.database.execSQL(sql);
+        }
+        sql = "SELECT * FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
+        cursor = MainActivity.database.rawQuery(sql,null);
+        if(cursor!=null&&cursor.getCount()!=0){
+            Log.e("deletePath FAIL",path);
+        }
+        else{
+            Log.e("deletePath SUCCEED",path);
         }
     }
 
@@ -606,23 +611,6 @@ public class Restore extends Thread implements Runnable {
             e.printStackTrace();
         }
         return retPW;
-    }
-
-    private void changeActivateStatus(Context context){
-        String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
-        File activate_info = new File(activate_info_path);
-        boolean currentStatus;
-        try{
-            BufferedReader br = new BufferedReader(new FileReader(activate_info));
-            currentStatus = Boolean.parseBoolean(br.readLine());
-            br.close();
-            BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info,false));
-            if(currentStatus){bw.write("false");}
-            else{bw.write("true");}
-            bw.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
     }
 
 }
