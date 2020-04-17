@@ -11,13 +11,10 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
-import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
-import com.github.mikephil.charting.utils.ViewPortHandler;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
@@ -64,26 +61,28 @@ public class MountainFragment extends Fragment {
         try {
             connectToServer(Host,ID,PW,Port);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            serverConnection = false;
         }
         if(serverConnection){
             try {
                 checkIfInternalBackedUp();
+            } catch (InterruptedException e) {
+                is_internal_backup = false;
+            }
+            try {
                 checkIfExternalBackedUp();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                is_external_backup = false;
             }
             try {
                 runCommand(Host,ID,PW,Port);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            //TODO: show pie chart here.
             ArrayList storageData = new ArrayList();
             if(is_internal_backup){
                 storageData.add(new PieEntry(internalBlocks,"Internal Backup: "+String.format("%.2f",(float)internalBlocks/1024/1024)+" GB"));
             }
-
             if(is_external_backup){
                 storageData.add(new PieEntry(externalBlocks,"SDcard Backup: "+String.format("%.2f",(float)externalBlocks/1024/1024)+" GB"));
             }
@@ -178,6 +177,7 @@ public class MountainFragment extends Fragment {
                     split = result.split("\\s+");
                     externalBlocks = Long.parseLong(split[0]);
                     disconnect_exec();
+                    result = "";
                 }
             }
         });

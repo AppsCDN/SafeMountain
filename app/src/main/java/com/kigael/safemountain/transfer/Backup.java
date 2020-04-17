@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Environment;
-import android.util.Log;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -21,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Vector;
@@ -40,6 +40,7 @@ public class Backup extends Thread implements Runnable {
     private String PW;
     private int Port;
     private Context context;
+    public static ArrayList<String> restoringFiles = new ArrayList<String>();
 
     public Backup(Context context){
         this.context = context;
@@ -59,6 +60,7 @@ public class Backup extends Thread implements Runnable {
                 if(cursor!=null&&cursor.getCount()!=0){
                     cursor.moveToFirst();
                     file_path = cursor.getString(cursor.getColumnIndex("PATH"));
+                    boolean validDeletePath = true;
                     if(file_path.startsWith(getExtenerStoragePath().toString())){
                         backup_path = file_path.replace(getExtenerStoragePath().toString(),"/SafeMountainBackup/Internal");
                     }
@@ -66,19 +68,24 @@ public class Backup extends Thread implements Runnable {
                         backup_path = file_path.replace(new SDCard().getExternalSDCardPath(),"/SafeMountainBackup/External");
                     }
                     else{
+                        validDeletePath = false;
                         delete_done(file_path);
                     }
                     cursor.close();
-                    if(!new File(file_path).exists()){
-                        cancelTransfer(backup_path);
-                        try {
-                            deleteEmptyDir("."+new File(backup_path).getParent());
-                        } catch (SftpException e) {
-                            e.printStackTrace();
+                    if(validDeletePath){
+                        if(!new File(file_path).exists()){
+                            boolean delete_success = true;
+                            cancelTransfer(backup_path);
+                            try {
+                                deleteEmptyDir("."+new File(backup_path).getParent());
+                            } catch (SftpException e) {
+                                delete_success = false;
+                            }
+                            if(delete_success){
+                                delete_done(file_path);
+                            }
                         }
-                        Log.e("DeleteFile",backup_path);
                     }
-                    delete_done(file_path);
                 }
                 else if(cursor!=null){
                     cursor.close();
@@ -88,6 +95,7 @@ public class Backup extends Thread implements Runnable {
                 if(cursor!=null&&cursor.getCount()!=0){
                     cursor.moveToFirst();
                     file_path = cursor.getString(cursor.getColumnIndex("PATH"));
+                    boolean validSendPath = true;
                     if(file_path.startsWith(getExtenerStoragePath().toString())){
                         backup_path = file_path.replace(getExtenerStoragePath().toString(),"/SafeMountainBackup/Internal");
                     }
@@ -95,29 +103,29 @@ public class Backup extends Thread implements Runnable {
                         backup_path = file_path.replace(new SDCard().getExternalSDCardPath(),"/SafeMountainBackup/External");
                     }
                     else{
+                        validSendPath = false;
                         send_done(file_path);
                     }
                     cursor.close();
-                    LastModified = getLastModifiedDate(file_path);
-                    boolean sent_success = true;
-                    try {
-                        sendFile(backup_path,file_path);
-                    } catch (Exception e) {
-                        sent_success = false;
-                    }
-                    if(!ifFileExist(file_path)){
-                        Log.e("TransferFail-cancel",file_path);
-                        cancelTransfer(backup_path);
-                        send_done(file_path);
-                    }
-                    else if(ifFileExist(file_path) && getLastModifiedDate(file_path) == LastModified){
-                        if(sent_success){
-                            Log.e("TransferSuccess",file_path);
+                    if(validSendPath){
+                        LastModified = getLastModifiedDate(file_path);
+                        boolean sent_success = true;
+                        try {
+                            if(!restoringFiles.contains(file_path)){
+                                sendFile(backup_path,file_path);
+                            }
+                        } catch (Exception e) {
+                            sent_success = false;
+                        }
+                        if(!ifFileExist(file_path)){
+                            cancelTransfer(backup_path);
                             send_done(file_path);
                         }
-                    }
-                    else if(ifFileExist(file_path) && getLastModifiedDate(file_path) != LastModified){
-                        Log.e("TransferFail-resend",file_path);
+                        else if(ifFileExist(file_path) && getLastModifiedDate(file_path) == LastModified){
+                            if(sent_success){
+                                send_done(file_path);
+                            }
+                        }
                     }
                 }
                 else if(cursor!=null){

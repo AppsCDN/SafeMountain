@@ -18,8 +18,6 @@ import android.os.Build;
 import android.os.FileObserver;
 import android.os.IBinder;
 import android.os.Environment;
-import android.util.Log;
-
 import androidx.core.app.NotificationCompat;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
@@ -247,7 +245,6 @@ public class FileSystemObserverService extends Service {
                 }
                 sql = "INSERT INTO Files_To_Transfer (PATH) VALUES ("+"\""+path+"\""+")";
                 MainActivity.database.execSQL(sql);
-                Log.e("insertPath",path);
             }
         }
     }

@@ -5,13 +5,11 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
-import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import androidx.documentfile.provider.DocumentFile;
@@ -199,6 +197,7 @@ public class Restore extends Thread implements Runnable {
         }
         MainActivity.hideLoadingScreen();
         disconnect_sftp();
+        Backup.restoringFiles.clear();
         stopRestoreService();
     }
 
@@ -281,8 +280,8 @@ public class Restore extends Thread implements Runnable {
                     MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
                     restoreStatus = "Fetching "+item.getFilename();
                     newFile = pickedDir.createFile("",item.getFilename());
+                    Backup.restoringFiles.add(getPathFromUri(newFile.getUri()));
                     write(src + "/" + item.getFilename(),newFile.getUri());
-                    DeletePath(getPathFromUri(newFile.getUri()));
                 }
                 else{
                     MainActivity.changeLoadingMessage("Skipping "+item.getFilename());
@@ -323,24 +322,6 @@ public class Restore extends Thread implements Runnable {
             path = new SDCard().getExternalSDCardPath()+"/";
             path += split[2];
             return path;
-        }
-    }
-
-    private void DeletePath(String path){
-        String sql = "SELECT * FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
-        Cursor cursor = MainActivity.database.rawQuery(sql,null);
-        if(cursor!=null&&cursor.getCount()!=0){
-            cursor.close();
-            sql = "DELETE FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
-            MainActivity.database.execSQL(sql);
-        }
-        sql = "SELECT * FROM Files_To_Transfer WHERE PATH = "+"\""+path+"\"";
-        cursor = MainActivity.database.rawQuery(sql,null);
-        if(cursor!=null&&cursor.getCount()!=0){
-            Log.e("deletePath FAIL",path);
-        }
-        else{
-            Log.e("deletePath SUCCEED",path);
         }
     }
 
