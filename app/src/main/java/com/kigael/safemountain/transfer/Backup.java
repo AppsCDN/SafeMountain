@@ -13,6 +13,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.service.FileSystemObserverService;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Vector;
@@ -40,7 +40,6 @@ public class Backup extends Thread implements Runnable {
     private String PW;
     private int Port;
     private Context context;
-    public static ArrayList<String> restoringFiles = new ArrayList<String>();
 
     public Backup(Context context){
         this.context = context;
@@ -74,16 +73,13 @@ public class Backup extends Thread implements Runnable {
                     cursor.close();
                     if(validDeletePath){
                         if(!new File(file_path).exists()){
-                            boolean delete_success = true;
                             cancelTransfer(backup_path);
                             try {
                                 deleteEmptyDir("."+new File(backup_path).getParent());
                             } catch (SftpException e) {
-                                delete_success = false;
+                                e.printStackTrace();
                             }
-                            if(delete_success){
-                                delete_done(file_path);
-                            }
+                            delete_done(file_path);
                         }
                     }
                 }
@@ -111,8 +107,11 @@ public class Backup extends Thread implements Runnable {
                         LastModified = getLastModifiedDate(file_path);
                         boolean sent_success = true;
                         try {
-                            if(!restoringFiles.contains(file_path)){
+                            if(!Restore.restoringFiles.contains(file_path)){
                                 sendFile(backup_path,file_path);
+                            }
+                            else{
+                                send_done(file_path);
                             }
                         } catch (Exception e) {
                             sent_success = false;
@@ -224,17 +223,17 @@ public class Backup extends Thread implements Runnable {
         if(session!=null){session.disconnect();}
     }
 
-   private long getLastModifiedDate(String file_path){
+    private long getLastModifiedDate(String file_path){
         File f = new File(file_path);
         return f.lastModified();
-   }
+    }
 
-   private boolean ifFileExist(String file_path){
-       File f = new File(file_path);
-       return f.exists();
-   }
+    private boolean ifFileExist(String file_path){
+        File f = new File(file_path);
+        return f.exists();
+    }
 
-   private void send_done(String file_path){
+    private void send_done(String file_path){
         sql = "delete from Files_To_Transfer where PATH = " + "\"" + file_path + "\"";
         MainActivity.database.execSQL(sql);
     }

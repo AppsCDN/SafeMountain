@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Stack;
@@ -59,6 +60,7 @@ public class Restore extends Thread implements Runnable {
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
     public static String restoreStatus = "";
     public static String dialogContext = "";
+    public static ArrayList<String> restoringFiles = new ArrayList<String>();
 
     public Restore(){}
 
@@ -193,11 +195,11 @@ public class Restore extends Thread implements Runnable {
                 recursiveFolderDownload(src.pop(),rootUri.pop());
             }
         } catch (SftpException e) {
-            e.printStackTrace();
+            //TODO: handle restore failure.
         }
         MainActivity.hideLoadingScreen();
         disconnect_sftp();
-        Backup.restoringFiles.clear();
+        restoringFiles.clear();
         stopRestoreService();
     }
 
@@ -280,7 +282,7 @@ public class Restore extends Thread implements Runnable {
                     MainActivity.changeLoadingMessage("Fetching "+item.getFilename());
                     restoreStatus = "Fetching "+item.getFilename();
                     newFile = pickedDir.createFile("",item.getFilename());
-                    Backup.restoringFiles.add(getPathFromUri(newFile.getUri()));
+                    restoringFiles.add(getPathFromUri(newFile.getUri()));
                     write(src + "/" + item.getFilename(),newFile.getUri());
                 }
                 else{

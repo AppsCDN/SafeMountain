@@ -3,6 +3,7 @@ package com.kigael.safemountain.ui.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -20,6 +21,7 @@ import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.Login;
+import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
 import com.kigael.safemountain.transfer.Restore;
 import java.io.BufferedReader;
@@ -29,6 +31,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 
 public class SettingsFragment extends Fragment {
+    private String sql;
+    private Cursor cursor;
     private Context context;
     private static String ID="",PW="",HOST="";
     private static int PORT=0;
@@ -90,9 +94,20 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if(isNetworkConnected()){
-                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setMessage("Proceed restoration?").setPositiveButton("YES", dialogClickListener)
-                            .setNegativeButton("NO", dialogClickListener).show();
+                    sql="SELECT * FROM Files_To_Transfer";
+                    cursor = MainActivity.database.rawQuery(sql,null);
+                    if(cursor!=null&&cursor.getCount()!=0){
+                        cursor.close();
+                        Toast.makeText(context,"Backup is still in progress",Toast.LENGTH_LONG).show();
+                    }
+                    else{
+                        if(cursor!=null){
+                            cursor.close();
+                        }
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setMessage("Proceed restoration?").setPositiveButton("YES", dialogClickListener)
+                                .setNegativeButton("NO", dialogClickListener).show();
+                    }
                 }
                 else{
                     Toast.makeText(context,"No network connection",Toast.LENGTH_LONG).show();

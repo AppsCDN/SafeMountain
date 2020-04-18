@@ -26,7 +26,7 @@ import com.kigael.safemountain.transfer.Backup;
 public class FileSystemObserverService extends Service {
     public static int Observer_Count;
     private static Thread Observers;
-    private static final String[] Forbidden_List = {"mtptemp", ".tmp",".mtp",".thumbnails",".face",".crdownload","com.",".chromium"};
+    private static final String[] Forbidden_List = {"mtptemp", ".tmp",".mtp",".thumbnails",".face",".crdownload","com.",".chromium",".cache"};
     public static boolean is_running = false;
     private String sql;
     private Cursor cursor;
