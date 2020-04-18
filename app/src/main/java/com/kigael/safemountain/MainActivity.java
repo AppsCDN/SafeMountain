@@ -132,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode,int resultCode,Intent resultData) {
         super.onActivityResult(requestCode, resultCode, resultData);
         if (resultCode != RESULT_OK) {
+            Restore.src.pop();
             return;
         }
         Uri treeUri = resultData.getData();

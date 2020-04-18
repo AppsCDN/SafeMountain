@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.os.StatFs;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
@@ -24,10 +23,10 @@ import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.service.RestoreService;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
@@ -56,7 +55,7 @@ public class Restore extends Thread implements Runnable {
     private String external_backup_size;
     private String popUpMessage="";
     public static Stack<Character> asked;
-    private static Stack<String> src = new Stack<String>();
+    public static Stack<String> src = new Stack<String>();
     public static Stack<DocumentFile> rootUri = new Stack<DocumentFile>();
     public static String restoreStatus = "";
     public static String dialogContext = "";
@@ -299,16 +298,15 @@ public class Restore extends Thread implements Runnable {
         }
     }
 
-    private void write(String src, Uri uri){
+    private void write(String src, Uri uri) {
         try {
-            ParcelFileDescriptor descriptor=context.getContentResolver().openFileDescriptor(uri,"w");
-            if(descriptor!=null) {
-                FileOutputStream fos=new FileOutputStream(descriptor.getFileDescriptor());
-                channelSftp.get(src,fos);
-                fos.close();
+            OutputStream os = context.getContentResolver().openOutputStream(uri);
+            channelSftp.get(src,os);
+            if(os!=null){
+                os.close();
             }
         } catch (IOException | SftpException e) {
-            e.printStackTrace();
+
         }
     }
 
