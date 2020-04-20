@@ -3,7 +3,6 @@ package com.kigael.safemountain.ui.settings;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -21,7 +20,6 @@ import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.navigation.NavigationView;
 import com.kigael.safemountain.Login;
-import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.R;
 import com.kigael.safemountain.transfer.Restore;
 import java.io.BufferedReader;
@@ -31,11 +29,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 
 public class SettingsFragment extends Fragment {
-    private String sql;
-    private Cursor cursor;
     private Context context;
-    private static String ID="",PW="",HOST="";
-    private static int PORT=0;
+    private static String ID="",PW="",HOST="",PORT="";
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -94,20 +89,9 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if(isNetworkConnected()){
-                    sql="SELECT * FROM Files_To_Transfer";
-                    cursor = MainActivity.database.rawQuery(sql,null);
-                    if(cursor!=null&&cursor.getCount()!=0){
-                        cursor.close();
-                        Toast.makeText(context,"Backup is still in progress",Toast.LENGTH_LONG).show();
-                    }
-                    else{
-                        if(cursor!=null){
-                            cursor.close();
-                        }
-                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                        builder.setMessage("Proceed restoration?").setPositiveButton("YES", dialogClickListener)
-                                .setNegativeButton("NO", dialogClickListener).show();
-                    }
+                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                    builder.setMessage("Proceed restoration?").setPositiveButton("YES", dialogClickListener)
+                            .setNegativeButton("NO", dialogClickListener).show();
                 }
                 else{
                     Toast.makeText(context,"No network connection",Toast.LENGTH_LONG).show();
@@ -153,6 +137,8 @@ public class SettingsFragment extends Fragment {
 
     private void createLoginFile(Context context, String in_id, String in_pw, String in_Host, String in_Port){
         String account_info_path = context.getFilesDir().toString()+"/account_info.txt";
+        String activate_info_path = context.getFilesDir().toString()+"/activate_info.txt";
+        String mobile_info_path = context.getFilesDir().toString()+"/mobile_info.txt";
         String toWrite = in_id+"\n"+in_pw+"\n"+in_Host+"\n"+in_Port;
         try{
             BufferedWriter bw = new BufferedWriter(new FileWriter(account_info_path, false));
@@ -160,6 +146,24 @@ public class SettingsFragment extends Fragment {
             bw.close();
         }catch (Exception e){
             e.printStackTrace();
+        }
+        if(!new File(activate_info_path).exists()){
+            try{
+                BufferedWriter bw = new BufferedWriter(new FileWriter(activate_info_path, false));
+                bw.write("false");
+                bw.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        if(!new File(mobile_info_path).exists()){
+            try{
+                BufferedWriter bw = new BufferedWriter(new FileWriter(mobile_info_path, false));
+                bw.write("false");
+                bw.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }
     }
 
@@ -179,12 +183,12 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 HOST = host.getText().toString();
-                PORT = Integer.parseInt(port.getText().toString());
+                PORT = port.getText().toString();
                 ID = id.getText().toString();
                 PW = pw.getText().toString();
-                if(!HOST.isEmpty()&&!(PORT==0)&&!ID.isEmpty()&&!PW.isEmpty()){
+                if(!HOST.isEmpty()&&!PORT.isEmpty()&&!ID.isEmpty()&&!PW.isEmpty()){
                     try {
-                        new Login(ID,PW,HOST,PORT);
+                        new Login(ID,PW,HOST,Integer.parseInt(PORT));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -192,13 +196,17 @@ public class SettingsFragment extends Fragment {
                     if(isLoginSuccess){
                         idView.setText(ID);
                         hostView.setText(HOST);
-                        createLoginFile(context,ID,PW,HOST,Integer.toString(PORT));
+                        createLoginFile(context,ID,PW,HOST,PORT);
                         Toast.makeText(context,"Server connection success",Toast.LENGTH_SHORT).show();
                     }
                     else {
-                        HOST=""; PORT=0; ID=""; PW="";
+                        HOST=""; PORT=""; ID=""; PW="";
                         Toast.makeText(context,"Server connection failed",Toast.LENGTH_SHORT).show();
                     }
+                }
+                else{
+                    HOST=""; PORT=""; ID=""; PW="";
+                    Toast.makeText(context,"Server connection failed",Toast.LENGTH_SHORT).show();
                 }
             }
         }).show();

@@ -44,8 +44,7 @@ import java.io.FileWriter;
 public class MainActivity extends AppCompatActivity {
     private static MainActivity instance = null;
     private AppBarConfiguration mAppBarConfiguration;
-    private static String ID="",PW="",HOST="";
-    private static int PORT=0;
+    private static String ID="",PW="",HOST="",PORT="";
     public static SQLiteDatabase database;
     private static ProgressDialog loading;
 
@@ -228,12 +227,12 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         HOST = host.getText().toString();
-                        PORT = Integer.parseInt(port.getText().toString());
+                        PORT = port.getText().toString();
                         ID = id.getText().toString();
                         PW = pw.getText().toString();
-                        if(!HOST.isEmpty()&&!(PORT==0)&&!ID.isEmpty()&&!PW.isEmpty()&&!checkLoginStatus(MainActivity.this)){
+                        if(!HOST.isEmpty()&&!PORT.isEmpty()&&!ID.isEmpty()&&!PW.isEmpty()&&!checkLoginStatus(MainActivity.this)){
                             try {
-                                new Login(ID,PW,HOST,PORT);
+                                new Login(ID,PW,HOST,Integer.parseInt(PORT));
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -241,12 +240,16 @@ public class MainActivity extends AppCompatActivity {
                             if(isLoginSuccess){
                                 idView.setText(ID);
                                 hostView.setText(HOST);
-                                createLoginFile(MainActivity.this,ID,PW,HOST,Integer.toString(PORT));
+                                createLoginFile(MainActivity.this,ID,PW,HOST,PORT);
                             }
                             else {
-                                HOST=""; PORT=0; ID=""; PW="";
+                                HOST=""; PORT=""; ID=""; PW="";
                                 Toast.makeText(MainActivity.this,"Login failed",Toast.LENGTH_SHORT).show();
                             }
+                        }
+                        else{
+                            HOST=""; PORT=""; ID=""; PW="";
+                            Toast.makeText(MainActivity.this,"Login failed",Toast.LENGTH_SHORT).show();
                         }
                     }
                 }).show();

@@ -13,7 +13,6 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import com.kigael.safemountain.MainActivity;
 import com.kigael.safemountain.service.FileSystemObserverService;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
